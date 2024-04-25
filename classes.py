@@ -95,12 +95,7 @@ class Segment():
         
     # determine if intersects with another segment
     # - should we incorporate testing for identical segments and non-zero lengths?
-    def intersects(self, other):                
-        print(f'Method not yet defined, will always return false')
-        return False
-    
-        # determine if intersects with another segment (using Point method leftRight)
-    # - should we incorporate testing for identical segments and non-zero lengths?
+
     def intersects(self, other):        
         
         # first test if projections overlap 
