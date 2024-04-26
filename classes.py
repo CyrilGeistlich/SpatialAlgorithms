@@ -189,6 +189,24 @@ class Polygon(PointGroup):
     def containsPoint(self, p):
         if (self.bbox.containsPoint(p) == False):
             return False
+        
+        # Solution, as discussed in lecture, added here
+        ray = Segment(p, Point(self.bbox.ur.x+1, p.y))
+        count = 0
+        
+        for i in range(0, self.size-1):
+            start = self[i]
+            end = self[i+1]
+            s = Segment(start, end)
+            if s.intersects(ray):
+                if (p.y != min(start.y, end.y)):
+                    count = count + 1
+
+        #print(f'count: {count}')
+        #print(p)
+        if (count%2 == 0):
+            return False           
+
         return True
 
 ## BBOX CLASS ##
