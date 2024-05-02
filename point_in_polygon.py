@@ -4,6 +4,7 @@
 
 import pandas as pd # Used to import csv
 import geopandas as gpd # Used to import gpkg
+import rtree # Used for spatial index
 
 ## Import Data ## 
 
@@ -16,4 +17,11 @@ import geopandas as gpd # Used to import gpkg
 names_pt = pd.read_csv('data/swissnames3d_2023_2056/swissNAMES3D_PKT.csv')
 #names_lin = pd.read('data/swissnames3d_2023_2056/swissNAMES3D_LIN.csv')
 #names_pol = pd.read('data/swissnames3d_2023_2056/swissNAMES3D_PLY.csv')
+
+
+def create_spatial_index(polygons):
+    index = rtree.index.Index() # initialize an R-tree index
+    for idx, polygon in enumerate(polygons):    # the index of the polygon in the list, and the actual polygon object
+        index.insert(idx, polygon.geometry.bounds) # get the bounding box and add it to the spatial index
+    return index
 
