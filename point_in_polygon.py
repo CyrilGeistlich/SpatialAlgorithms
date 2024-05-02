@@ -25,3 +25,10 @@ def create_spatial_index(polygons):
         index.insert(idx, polygon.geometry.bounds) # get the bounding box and add it to the spatial index
     return index
 
+def assign_polygons_to_points(points, polygons, index):
+    for point in points:
+        candidate_ids = list(index.intersection(point.geometry.bounds)) # get the index of potential polygons that might contain the point
+        for polygon_id in candidate_ids:
+            if polygons[polygon_id].contains(point): # should check our input polygons have this method, otherwise use shapely and def contains(self, point): return self.geometry.contains(point.geometry)
+                point.set_polygon_id(polygon_id)    # this method should be add to the class Point as def set_polygon_id(self, polygon_id):self.polygon_id = polygon_id
+                break
