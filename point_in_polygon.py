@@ -36,6 +36,6 @@ def assign_polygons_to_points(points, polygons, index):
                 results.append(polygon_id)
                 found = True
                 break
-            if not found:
-                results.append(None)
+        if not found: 
+            results.append(None)
     return results
