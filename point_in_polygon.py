@@ -25,6 +25,8 @@ def create_spatial_index(polygons):
         index.insert(idx, polygon.geometry.bounds) # get the bounding box and add it to the spatial index
     return index
 
+# which polygon does each point belong to? some points may not belong to any polygon
+# return a list of polygon_id (some of them could be None), keep the same index with the input list "points"
 def assign_polygons_to_points(points, polygons, index):
     results = []
     for point in points:
@@ -38,4 +40,4 @@ def assign_polygons_to_points(points, polygons, index):
                 break
         if not found: 
             results.append(None)
-    return results
+    return results 
