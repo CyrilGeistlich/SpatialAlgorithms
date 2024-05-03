@@ -18,7 +18,7 @@ names_pt = pd.read_csv('data/swissnames3d_2023_2056/swissNAMES3D_PKT.csv')
 #names_lin = pd.read('data/swissnames3d_2023_2056/swissNAMES3D_LIN.csv')
 #names_pol = pd.read('data/swissnames3d_2023_2056/swissNAMES3D_PLY.csv')
 
-
+# create an R-tree index for polygons
 def create_spatial_index(polygons):
     index = rtree.index.Index() # initialize an R-tree index
     for idx, polygon in enumerate(polygons):    # the index of the polygon in the list, and the actual polygon object
