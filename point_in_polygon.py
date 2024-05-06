@@ -25,27 +25,27 @@ import matplotlib.pyplot as plt
 # create an R-tree index for polygons
 def create_spatial_index(polygons):
     index = rtree.index.Index() # initialize an R-tree index
-    for idx, polygon in enumerate(polygons):    # the index of the polygon in the list, and the actual polygon object
-        polygon.bbox.x
-        index.insert(idx, polygon.geometry.bounds) # get the bounding box and add it to the spatial index
+    for idx, polygon in enumerate(polygons):    # the index of the polygon in the list, and the actual polygon object       
+        index.insert(idx, (polygon.bbox.ll.x,polygon.bbox.ll.y,polygon.bbox.ur.x,polygon.bbox.ur.y)) # get the bounding box and add it to the spatial index
     return index
 
 # which polygon does each point belong to? some points may not belong to any polygon
-# return a list of polygon_id (some of them could be None), keep the same index with the input list "points"
+# to set polygon_id in the class Point
+# if activate those lines, can return a list of polygon_id (some of them could be None), keep the same index with the input list "points"
 def assign_polygons_to_points(points, polygons, index):
-    results = []
+    #results = []
     for point in points:
-        candidate_ids = list(index.intersection(point)) # get the index of potential polygons that might contain the point
+        candidate_ids = list(index.intersection((point.x, point.y, point.x, point.y))) # get the index of potential polygons that might contain the point
         found = False
-        for polygon_id in candidate_ids:
-            if polygons[polygon_id].containsPoint(point): # should check our input polygons have this method, otherwise use shapely and def contains(self, point): return self.geometry.contains(point.geometry)
-                point.set_polygon_id(polygons)    # if using this line, this method should be add to the class Point as def set_polygon_id(self, polygon_id):self.polygon_id = polygon_id
-                results.append(polygon_id)
-                found = True
+        for idx in candidate_ids:
+            if polygons[idx].containsPoint(point): # should check our input polygons have this method, otherwise use shapely and def contains(self, point): return self.geometry.contains(point.geometry)
+                point.set_polygon_id(polygons[idx])    # if using this line, this method should be add to the class Point as def set_polygon_id(self, polygon_id):self.polygon_id = polygon_id
+                #results.append(idx)
+                #found = True
                 break
-        if not found: 
-            results.append(None)
-    return results 
+        #if not found: 
+            #results.append(None)
+    #return results 
 
 
 ## POINT IN POLYGON
@@ -61,7 +61,7 @@ sample1 = [[0,10], [5,0], [10,10], [15,0], [20,10], [25, 0],
 
 samplePolygon = Polygon(sample1, xcol=0, ycol=1)
 
-create_spatial_index(samplePolygon)
-assign_polygons_to_points(points, samplePolygon)
+index=create_spatial_index(samplePolygon)
+assign_polygons_to_points(points, samplePolygon,index)
 
 
