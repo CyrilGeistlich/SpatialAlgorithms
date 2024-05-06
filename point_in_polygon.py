@@ -32,7 +32,8 @@ def create_spatial_index(polygons):
 # which polygon does each point belong to? some points may not belong to any polygon
 # to set polygon_id in the class Point
 # if activate those lines, can return a list of polygon_id (some of them could be None), keep the same index with the input list "points"
-def assign_polygons_to_points(points, polygons, index):
+def assign_polygons_to_points(points, polygons):
+    index = create_spatial_index(polygons)
     #results = []
     for point in points:
         candidate_ids = list(index.intersection((point.x, point.y, point.x, point.y))) # get the index of potential polygons that might contain the point
@@ -61,7 +62,7 @@ sample1 = [[0,10], [5,0], [10,10], [15,0], [20,10], [25, 0],
 
 samplePolygon = Polygon(sample1, xcol=0, ycol=1)
 
-index=create_spatial_index(samplePolygon)
-assign_polygons_to_points(points, samplePolygon,index)
+
+assign_polygons_to_points(points, samplePolygon)
 
 
