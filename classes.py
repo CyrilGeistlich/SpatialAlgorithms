@@ -7,10 +7,15 @@ from numpy import sqrt, radians, arcsin, sin, cos
 ## POINT CLASS ##
 
 class Point():
+    _id_counter = 0  # Class-level attribute to track the ID
+
     # initialise
     def __init__(self, x=None, y=None):
         self.x = x
         self.y = y
+        # SET ID
+        type(self)._id_counter += 1
+        self.id = self._id_counter
     
     # representation
     def __repr__(self):
@@ -30,6 +35,24 @@ class Point():
     # calculate Euclidean distance between two points
     def distEuclidean(self, other):
         return sqrt((self.x-other.x)**2 + (self.y-other.y)**2)
+    
+    # Calculate determinant with respect to three points. Note the order matters here - we use it to work out left/ right in the next method
+    def __det(self, p1, p2):
+        det = (self.x-p1.x)*(p2.y-p1.y)-(p2.x-p1.x)*(self.y-p1.y)       
+        return det
+    
+    def leftRight(self, p1, p2):
+    # based on GIS Algorithms, Ch2, p11-12, by Ningchuan Xiao, publ. 2016
+    # -ve: this point is on the left side of a line connecting p1 and p2
+    #   0: this point is collinear
+    # +ve: this point is on the right side of the line
+        side = int(self.__det(p1, p2))
+        if side != 0:
+            side = side/abs(side)  # will return 0 if collinear, -1 for left, 1 for right
+        return side
+    
+    def set_polygon_id(self, polygon):
+        self.polygon_id = polygon.id
 
 
 ## POINTGROUPS CLASS ##
@@ -134,12 +157,18 @@ class Segment():
 ## POLYGON CLASS ## 
 
 class Polygon(PointGroup):  
+    _id_counter = 0  # Class-level attribute to track the ID
+
     # initialise
     def __init__(self, data=None, xcol=None, ycol=None):
         self.points = []
         self.size = len(data)
         for d in data:
             self.points.append(Point(d[xcol], d[ycol]))
+        self.bbox = Bbox(self)
+        # SET ID COUNTER
+        type(self)._id_counter += 1
+        self.id = self._id_counter
     
     # representation
     def __repr__(self):
@@ -201,6 +230,9 @@ class Polygon(PointGroup):
             if s.intersects(ray):
                 if (p.y != min(start.y, end.y)):
                     count = count + 1
+
+        def set_polygon_id(self, polygon_id):
+            self.polygon_id = polygon_id
 
         #print(f'count: {count}')
         #print(p)
@@ -278,8 +310,15 @@ class Bbox():
     def __init__(self, data):
     # using built-in `isinstance` to test what class has been used to initialise the object   
 
-        x = [i.x for i in data]   # extract all x coords as a list
-        y = [i.y for i in data]   # extract all y coords as a list
+        # for Segment objects 
+        if isinstance(data, Segment) == True:
+            x = [data.start.x, data.end.x]
+            y = [data.start.y, data.end.y]
+        
+        # for PointGroup objects (including Polygon)
+        else:      
+            x = [i.x for i in data]   # extract all x coords as a list
+            y = [i.y for i in data]   # extract all y coords as a list
 
         # determine corners, calculate centre and area
         self.ll = Point(min(x), min(y))    # lower-left corner (min x, min y)
@@ -299,7 +338,7 @@ class Bbox():
             # We need this method so that the class will behave sensibly in sets and dictionaries
     
     def __hash__(self):
-        return hash(self.ll, self.ur)  
+        return hash(self.ll, other.ur)  
         
     # test for overlap between two bounding boxes
     def intersects(self, other):       
@@ -309,3 +348,9 @@ class Bbox():
             return True
         else:
             return False
+        
+    def containsPoint(self, p):
+        if (self.ur.x > p.x and p.x > self.ll.x and
+            self.ur.y > p.y and p.y > self.ll.y):
+            return True
+        return False
