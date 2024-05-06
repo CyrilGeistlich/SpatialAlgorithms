@@ -59,21 +59,6 @@ sample1 = [[0,10], [5,0], [10,10], [15,0], [20,10], [25, 0],
 
 samplePolygon = Polygon(sample1, xcol=0, ycol=1)
 
-print(f"Polygon is closed: {samplePolygon.isClosed()}")
-
-xs = [i.x for i in samplePolygon]
-ys = [i.y for i in samplePolygon]
-
-points = []
-contained = []
-for i in range(100): # Create 100 random Points to test
-    x = random.randint(-25,75)
-    y = random.randint(-25,75)
-    p = Point(x,y)
-    test = samplePolygon.containsPoint(p)
-    points.append(p)
-    contained.append(test)
-
 create_spatial_index(samplePolygon)
 assign_polygons_to_points(points, samplePolygon)
 
