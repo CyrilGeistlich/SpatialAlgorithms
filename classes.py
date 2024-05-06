@@ -209,6 +209,67 @@ class Polygon(PointGroup):
 
         return True
 
+    def perturb(self):
+        """Perturb the coordinates of the polygon by adding 0.001 to both X and Y coordinates."""
+        for point in self.points:
+            point.x += 0.001
+            point.y += 0.001
+    
+    def clip(self, subject_polygon):
+        """Clip this polygon with another polygon using Greiner-Hormann algorithm."""
+        perturbed_poly = self.perturb(subject_polygon)
+        output = [perturbed_poly.points]
+
+        for clip_edge in self.edges():
+            input_list = output
+            output = []
+
+            for input_polygon in input_list:
+                # Clip each polygon in the input list against the current clip edge
+                clipped = self.clip_polygon_against_edge(input_polygon, clip_edge)
+                output.extend(clipped)
+
+            if not output:
+                break
+
+        return [Polygon(data=polygon) for polygon in output]
+
+    def clip_polygon_against_edge(self, polygon, clip_edge):
+        """Clip a polygon against a single edge."""
+        input_vertices = polygon
+        output_vertices = []
+
+        for i, v1 in enumerate(input_vertices):
+            v2 = input_vertices[(i + 1) % len(input_vertices)]
+            if self.inside(v2, clip_edge):
+                if not self.inside(v1, clip_edge):
+                    intersection = self.intersection(v1, v2, clip_edge.start, clip_edge.end)
+                    output_vertices.append(intersection)
+                output_vertices.append(v2)
+            elif self.inside(v1, clip_edge):
+                intersection = self.intersection(v1, v2, clip_edge.start, clip_edge.end)
+                output_vertices.append(intersection)
+
+        return output_vertices
+
+    def inside(self, point, edge):
+        """Check if a point is inside the half-plane defined by an edge."""
+        return (edge.end.x - edge.start.x) * (point.y - edge.start.y) > (edge.end.y - edge.start.y) * (point.x - edge.start.x)
+
+    def intersection(self, a, b, c, d):
+        """Calculate intersection point between two line segments."""
+        div = (a.x - b.x) * (c.y - d.y) - (a.y - b.y) * (c.x - d.x)
+        if div == 0:
+            return None  # Lines are parallel
+        else:
+            x = ((a.x * b.y - a.y * b.x) * (c.x - d.x) - (a.x - b.x) * (c.x * d.y - c.y * d.x)) / div
+            y = ((a.x * b.y - a.y * b.x) * (c.y - d.y) - (a.y - b.y) * (c.x * d.y - c.y * d.x)) / div
+            return Point(x, y)
+
+    def edges(self):
+        """Generate edges of the polygon."""
+        return [Segment(self.points[i], self.points[(i + 1) % self.size]) for i in range(self.size)]
+
 ## BBOX CLASS ##
 
 class Bbox():
