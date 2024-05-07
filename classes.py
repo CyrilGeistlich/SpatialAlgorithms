@@ -172,10 +172,10 @@ class Segment():
 ## POLYGON CLASS ## 
 
 class Vertex(Point):
-    def __init__(self, x,y, name = None, intersect = False, entry_exit = False, alpha = 0.0):
+    def __init__(self, x,y, name = None, intersect = False, alpha = 0.0):
         super().__init__(x,y,name)
         self.intersect = intersect
-        self.entry_exit = entry_exit
+        self.entry_exit = None
         self.alpha = alpha
         self.next = None
         self.prev = None
@@ -216,6 +216,15 @@ class Polygon(PointGroup):
             yield current
             current = current.next
             if current == self.first: break
+
+    def __getitem__(self, index):
+        """ Retrieve the element at the specified index. """
+        if index < 0 or index >= self.size:
+            raise IndexError("Index out of range")
+        current = self.first
+        for _ in range(index):
+            current = current.next
+        return current
 
     def add(self, point):
         if not self.first:
@@ -345,6 +354,8 @@ class Polygon(PointGroup):
 
     
     def clip(self, clip_polygon):
+
+
         """Clip this polygon with another polygon using Greiner-Hormann algorithm."""
 
         if not self.bbox.intersects(clip_polygon.bbox):
@@ -370,7 +381,22 @@ class Polygon(PointGroup):
 
                     clip_polygon.insert(c_vertex, clip_edge)
                     self.insert(s_vertex, edge)
+        
+        ## Phase 2:
+        self.update_entry_exit(clip_polygon)
+        clip_polygon.update_entry_exit(self)
 
+    def update_entry_exit(self, other):
+        
+        if other.containsPoint(self.first):
+            status = "exit"
+        else: status = "entry"
+
+        for vertex in self:
+            if vertex.intersect:
+                vertex.entry_exit = status
+                if status == "entry": status = "exit"
+                else: status = "entry"
     def edges(self):
         """Generate edges of the polygon."""
         start = self.first
@@ -446,35 +472,35 @@ if __name__ == "__main__":
     sample2 = [[0,5], 
              [26, 20],[25, 40], [0,40], [0, 5]]
 
-    sample3 = [[0,10], [5,0], [10,10], [15,0], [20,10], [25, 0],
-             [30, 20], [35, 15], [45, 0], [50, 50], [45, 40], 
-             [40, 50], [30, 45], [25, 40], [20, 30], [15, 50],
-             [10,35], [5, 50],[5,50], [0, 10]]
+    # sample3 = [[0,10], [5,0], [10,10], [15,0], [20,10], [25, 0],
+    #          [30, 20], [35, 15], [45, 0], [50, 50], [45, 40], 
+    #          [40, 50], [30, 45], [25, 40], [20, 30], [15, 50],
+    #          [10,35], [5, 50],[5,50], [0, 10]]
 
     samplePolygon1 = Polygon(sample1, xcol=0, ycol=1)
     samplePolygon2 = Polygon(sample2, xcol=0, ycol=1)
-    samplePolygon3 = Polygon(sample3, 0,1)
+    # samplePolygon3 = Polygon(sample3, 0,1)
     #print(f"Polygon 1 is closed: {samplePolygon1.isClosed()}")
     #print(f"Polygon 2 is closed: {samplePolygon2.isClosed()}")
 
 
 
     samplePolygon2.clip(samplePolygon1)
-    samplePolygon1.clip(samplePolygon3)
-    samplePolygon2.clip(samplePolygon3)
+    # samplePolygon1.clip(samplePolygon3)
+    # samplePolygon2.clip(samplePolygon3)
 
     xs2 = [i.x for i in samplePolygon2.pop_vertices()]
     ys2 = [i.y for i in samplePolygon2.pop_vertices()]
     xs1 = [i.x for i in samplePolygon1.pop_vertices()]
     ys1 = [i.y for i in samplePolygon1.pop_vertices()]
 
-    xs3 = [i.x for i in samplePolygon3.pop_vertices()]
-    ys3 = [i.y for i in samplePolygon3.pop_vertices()]
+    # xs3 = [i.x for i in samplePolygon3.pop_vertices()]
+    # ys3 = [i.y for i in samplePolygon3.pop_vertices()]
     #xs3 = [i.x for i in poly3]
     #ys3 = [i.y for i in poly3]
 
-    plt.plot(xs3, ys3, linestyle='dashed')
-    plt.scatter(xs3, ys3, color="red")
+    #plt.plot(xs3, ys3, linestyle='dashed')
+   # plt.scatter(xs3, ys3, color="red")
     plt.scatter(xs1, ys1, color="green")
     plt.scatter(xs2, ys2, color = "orange")
 
