@@ -267,6 +267,14 @@ class Polygon(PointGroup):
         prev.next = vertex
         curr.prev = vertex
 
+
+    def remove(self, vertex):
+        next = vertex.next
+        previous = vertex.prev
+
+        vertex.prev.next = next
+        vertex.next.previous = previous
+
     def pop_vertices(self): ## Only used to display
         edge_ends = [i.end for i in self.edges()]
         edge_ends.insert(0, self.first)
@@ -382,9 +390,25 @@ class Polygon(PointGroup):
                     clip_polygon.insert(c_vertex, clip_edge)
                     self.insert(s_vertex, edge)
         
+        clip_polygon.perturb(redo = True)
+
+        
         ## Phase 2:
         self.update_entry_exit(clip_polygon)
         clip_polygon.update_entry_exit(self)
+
+        #self.unclip()
+        #clip_polygon.unclip()
+
+    def unclip(self):
+
+        for p in self:
+            if p.intersect:
+                if p.next.intersect:
+                    self.remove(p.next)
+                if p.prev.intersect:
+                    self.remove(p.prev)
+                self.remove(p)
 
     def update_entry_exit(self, other):
         
@@ -472,41 +496,40 @@ if __name__ == "__main__":
     sample2 = [[0,5], 
              [26, 20],[25, 40], [0,40], [0, 5]]
 
-    # sample3 = [[0,10], [5,0], [10,10], [15,0], [20,10], [25, 0],
-    #          [30, 20], [35, 15], [45, 0], [50, 50], [45, 40], 
-    #          [40, 50], [30, 45], [25, 40], [20, 30], [15, 50],
-    #          [10,35], [5, 50],[5,50], [0, 10]]
+    sample3 = [[0,10], [5,0], [10,10], [15,0], [20,10], [25, 0],
+             [30, 20], [35, 15], [45, 0], [50, 50], [45, 40], 
+             [40, 50], [30, 45], [25, 40], [20, 30], [15, 50],
+             [10,35], [5, 50],[5,50], [0, 10]]
 
     samplePolygon1 = Polygon(sample1, xcol=0, ycol=1)
     samplePolygon2 = Polygon(sample2, xcol=0, ycol=1)
-    # samplePolygon3 = Polygon(sample3, 0,1)
+    samplePolygon3 = Polygon(sample3, 0,1)
     #print(f"Polygon 1 is closed: {samplePolygon1.isClosed()}")
     #print(f"Polygon 2 is closed: {samplePolygon2.isClosed()}")
 
 
 
-    samplePolygon2.clip(samplePolygon1)
-    # samplePolygon1.clip(samplePolygon3)
-    # samplePolygon2.clip(samplePolygon3)
+    #samplePolygon2.clip(samplePolygon1)
+    #samplePolygon3.clip(samplePolygon2)
 
     xs2 = [i.x for i in samplePolygon2.pop_vertices()]
     ys2 = [i.y for i in samplePolygon2.pop_vertices()]
-    xs1 = [i.x for i in samplePolygon1.pop_vertices()]
-    ys1 = [i.y for i in samplePolygon1.pop_vertices()]
+   # xs1 = [i.x for i in samplePolygon1.pop_vertices()]
+    #ys1 = [i.y for i in samplePolygon1.pop_vertices()]
 
-    # xs3 = [i.x for i in samplePolygon3.pop_vertices()]
-    # ys3 = [i.y for i in samplePolygon3.pop_vertices()]
-    #xs3 = [i.x for i in poly3]
-    #ys3 = [i.y for i in poly3]
+    xs3 = [i.x for i in samplePolygon3.pop_vertices()]
+    ys3 = [i.y for i in samplePolygon3.pop_vertices()]
 
-    #plt.plot(xs3, ys3, linestyle='dashed')
-   # plt.scatter(xs3, ys3, color="red")
-    plt.scatter(xs1, ys1, color="green")
-    plt.scatter(xs2, ys2, color = "orange")
+    plt.plot(xs3, ys3, linestyle='dashed')
+    plt.scatter(xs3, ys3, color="red")
+   # plt.scatter(xs1, ys1, color="green")
+    plt.scatter(xs2, ys2, color = "green")
 
-    plt.plot(xs1, ys1, linestyle='dashed')
+   # plt.plot(xs1, ys1, linestyle='dashed')
     plt.plot(xs2,ys2, linestyle = "dashed")
-    print(samplePolygon2.pop_vertices())
+    print(f"{samplePolygon2.pop_vertices()} \n ")
+    print(samplePolygon2)
+    print(f"pop_vertices_length: {len(samplePolygon2.pop_vertices())}")
 
    # print(samplePolygon2.points)
     """p1 = Point(x = 0, y = 0)
