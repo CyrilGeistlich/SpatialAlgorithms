@@ -184,6 +184,13 @@ class Vertex(Point):
     def __repr__(self):
         return f'Vertex(x={self.x}, y={self.y}, intersect = {self.intersect})'
 
+    def next_original_vertex(self):
+        """Return the next non intersecting vertex after the one specified."""
+        c = self.next
+        while c.intersect:
+            c = c.next
+        return c
+
 class Polygon(PointGroup):  
     _id_counter = 0  # Class-level attribute to track the ID
 
@@ -372,23 +379,26 @@ class Polygon(PointGroup):
 
         clip_polygon.perturb()
 
-        for i, edge in enumerate(self.edges()):
+        for i, s in enumerate(self):
+            if not s.intersect:
+                for j, c in enumerate(clip_polygon):
+                    if not c.intersect:
+                        if Segment(s,s.next_original_vertex()).intersects(Segment(c,c.next_original_vertex())):
 
-            for j, clip_edge in enumerate(clip_polygon.edges()):
-                if edge.intersects(clip_edge):
-                    intersection_point = edge.intersection(clip_edge)
+                            intersection_point = Segment(s,s.next_original_vertex()).intersection(Segment(c,c.next_original_vertex()))
+                            print(intersection_point)
 
-                    c_vertex = Vertex(intersection_point.x, intersection_point.y, intersect = True,
-                        alpha = intersection_point.distEuclidean(clip_edge.start))
-                    
-                    s_vertex = Vertex(intersection_point.x, intersection_point.y, intersect = True,
-                        alpha = intersection_point.distEuclidean(edge.start))
+                            c_vertex = Vertex(intersection_point.x, intersection_point.y, intersect = True,
+                                alpha = intersection_point.distEuclidean(c))
+                            
+                            s_vertex = Vertex(intersection_point.x, intersection_point.y, intersect = True,
+                                alpha = intersection_point.distEuclidean(s))
 
-                    c_vertex.link = s_vertex
-                    s_vertex.link = c_vertex
+                            c_vertex.link = s_vertex
+                            s_vertex.link = c_vertex
 
-                    clip_polygon.insert(c_vertex, clip_edge)
-                    self.insert(s_vertex, edge)
+                            clip_polygon.insert(c_vertex, Segment(c,c.next_original_vertex()))
+                            self.insert(s_vertex, Segment(s,s.next_original_vertex()))
         
         clip_polygon.perturb(redo = True)
 
@@ -397,8 +407,9 @@ class Polygon(PointGroup):
         self.update_entry_exit(clip_polygon)
         clip_polygon.update_entry_exit(self)
 
-        #self.unclip()
-        #clip_polygon.unclip()
+        self.unclip()
+        clip_polygon.unclip()
+
 
     def unclip(self):
 
@@ -496,6 +507,9 @@ if __name__ == "__main__":
     sample2 = [[0,5], 
              [26, 20],[25, 40], [0,40], [0, 5]]
 
+    sample4 = [[2,10] ,[20, 10], [20, 50],
+             [2,50],  [2, 10]]
+
     sample3 = [[0,10], [5,0], [10,10], [15,0], [20,10], [25, 0],
              [30, 20], [35, 15], [45, 0], [50, 50], [45, 40], 
              [40, 50], [30, 45], [25, 40], [20, 30], [15, 50],
@@ -510,7 +524,7 @@ if __name__ == "__main__":
 
 
     #samplePolygon2.clip(samplePolygon1)
-    #samplePolygon3.clip(samplePolygon2)
+    samplePolygon3.clip(samplePolygon2)
 
     xs2 = [i.x for i in samplePolygon2.pop_vertices()]
     ys2 = [i.y for i in samplePolygon2.pop_vertices()]
@@ -527,9 +541,9 @@ if __name__ == "__main__":
 
    # plt.plot(xs1, ys1, linestyle='dashed')
     plt.plot(xs2,ys2, linestyle = "dashed")
-    print(f"{samplePolygon2.pop_vertices()} \n ")
-    print(samplePolygon2)
-    print(f"pop_vertices_length: {len(samplePolygon2.pop_vertices())}")
+    #print(f"{samplePolygon2.pop_vertices()} \n ")
+    #print(samplePolygon2)
+    #print(f"pop_vertices_length: {len(samplePolygon2.pop_vertices())}")
 
    # print(samplePolygon2.points)
     """p1 = Point(x = 0, y = 0)
