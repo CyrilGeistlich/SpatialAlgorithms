@@ -10,7 +10,8 @@ class Point():
     _id_counter = 0  # Class-level attribute to track the ID
 
     # initialise
-    def __init__(self, x=None, y=None):
+    def __init__(self,name , x=None, y=None):
+        self.name = name
         self.x = x
         self.y = y
         # SET ID
@@ -160,11 +161,12 @@ class Polygon(PointGroup):
     _id_counter = 0  # Class-level attribute to track the ID
 
     # initialise
-    def __init__(self, data=None, xcol=None, ycol=None):
+    def __init__(self, name, data=None, xcol=None, ycol=None):
+        self.name = name
         self.points = []
         self.size = len(data)
         for d in data:
-            self.points.append(Point(d[xcol], d[ycol]))
+            self.points.append(Point(name, d[xcol], d[ycol]))
         self.bbox = Bbox(self)
         # SET ID COUNTER
         type(self)._id_counter += 1
