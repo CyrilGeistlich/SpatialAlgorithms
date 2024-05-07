@@ -10,7 +10,7 @@ class Point():
     _id_counter = 0  # Class-level attribute to track the ID
 
     # initialise
-    def __init__(self,name , x=None, y=None):
+    def __init__(self, name, x=None, y=None):
         self.name = name
         self.x = x
         self.y = y
