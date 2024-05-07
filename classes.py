@@ -10,7 +10,7 @@ class Point():
     _id_counter = 0  # Class-level attribute to track the ID
 
     # initialise
-    def __init__(self, name = None, x=None, y=None):
+    def __init__(self, x=None, y=None,name = None,):
         self.name = name
         self.x = x
         self.y = y
@@ -188,7 +188,7 @@ class Polygon(PointGroup):
     _id_counter = 0  # Class-level attribute to track the ID
 
     # initialise
-    def __init__(self, name, data=None, xcol=None, ycol=None):
+    def __init__(self, data=None, xcol=None, ycol=None,name=None):
         self.name = name
         self.points = []
         self.size = lambda self: len(self)
@@ -345,7 +345,7 @@ class Polygon(PointGroup):
 
         if not self.bbox.intersects(clip_polygon.bbox):
             print("Bbox test failed, no polygon intersection")
-            break
+            return 0
 
         clip_polygon.perturb()
 
