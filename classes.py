@@ -529,7 +529,9 @@ if __name__ == "__main__":
     samplePolygon2 = Polygon(sample2, xcol=0, ycol=1)
     samplePolygon3 = Polygon(sample3, 0,1)
     #print(f"Polygon 1 is closed: {samplePolygon1.isClosed()}")
-    #print(f"Polygon 2 is closed: {samplePolygon2.isClosed()}")
+    print(f"Polygon 2 is closed: {samplePolygon2.isClosed()}")
+
+    print(samplePolygon3.containsPoint(samplePolygon2.first.next))
 
 
 
