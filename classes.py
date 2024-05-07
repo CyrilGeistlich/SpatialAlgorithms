@@ -154,7 +154,34 @@ class Segment():
         
         return True
 
+    def intersection(self, other):
+        """Calculate intersection point between two line segments."""
+        a = self.start
+        b = self.end
+        c = other.start
+        d = other.end
+        div = (a.x - b.x) * (c.y - d.y) - (a.y - b.y) * (c.x - d.x)
+        if div == 0:
+            return f"doesn't work: {a}, {b},{c},{d} \n"  # Lines are parallel
+        else:
+            x = ((a.x * b.y - a.y * b.x) * (c.x - d.x) - (a.x - b.x) * (c.x * d.y - c.y * d.x)) / div
+            y = ((a.x * b.y - a.y * b.x) * (c.y - d.y) - (a.y - b.y) * (c.x * d.y - c.y * d.x)) / div
+            return Point(x, y)
+
 ## POLYGON CLASS ## 
+
+class Vertex(Point):
+    def __init__(self, x,y, intersect = False, entry_exit = False, alpha = 0.0):
+        super().__init__(x,y)
+        self.intersect = intersect
+        self.entry_exit = entry_exit
+        self.alpha = alpha
+        self.next = None
+        self.prev = None
+        self.intersection_next_poly = None
+
+    def __repr__(self):
+        return f'Vertex(x={self.x}, y={self.y}, intersect = {self.intersect})'
 
 class Polygon(PointGroup):  
     _id_counter = 0  # Class-level attribute to track the ID
@@ -162,13 +189,71 @@ class Polygon(PointGroup):
     # initialise
     def __init__(self, data=None, xcol=None, ycol=None):
         self.points = []
-        self.size = len(data)
-        for d in data:
-            self.points.append(Point(d[xcol], d[ycol]))
+        self.size = lambda self: len(self.points)
+        self.first = None
+        for i, d in enumerate(data):
+            self.points.append(Vertex(d[xcol], d[ycol]))
+            self.add(Vertex(d[xcol], d[ycol]))
         self.bbox = Bbox(self)
         # SET ID COUNTER
         type(self)._id_counter += 1
         self.id = self._id_counter
+
+    def __iter__(self):
+        """ Make the polygon iterable, traversing from head to the end. """
+        current = self.first
+        while current:
+            yield current
+            current = current.next
+            if current == self.first: break
+
+    def add(self, point):
+        if not self.first:
+            self.first = point
+            self.first.next = point
+            self.first.prev = point
+        else:
+            next = self.first
+            prev = next.prev
+            next.prev = point
+            point.next = next
+            point.prev = prev
+            prev.next = point
+    
+    def replace(self, old, new):
+        new.next = old.next
+        new.prev = old.prev
+        old.prev.next = new
+        old.next.prev = new
+        if old is self.first:
+            self.first = new
+
+    def insert(self, vertex, edge): ## Copied from Github
+        """Insert and sort a vertex between a specified pair of vertices.
+
+        This function inserts a vertex (most likely an intersection point)
+        between two other vertices (start and end). These other vertices
+        cannot be intersections (that is, they must be actual vertices of
+        the original polygon). If there are multiple intersection points
+        between the two vertices, then the new vertex is inserted based on
+        its alpha value.
+        """
+        curr = edge.start
+        while curr != edge.end and curr.alpha < vertex.alpha:
+            curr = curr.next
+
+        vertex.next = curr
+        prev = curr.prev
+        vertex.prev = prev
+        prev.next = vertex
+        curr.prev = vertex
+
+    def pop_vertices(self): ## Only used to display
+        edge_ends = [i.end for i in self.edges()]
+        edge_ends.insert(0, self.first)
+        return edge_ends
+
+
     
     # representation
     def __repr__(self):
@@ -241,66 +326,50 @@ class Polygon(PointGroup):
 
         return True
 
-    def perturb(self):
-        """Perturb the coordinates of the polygon by adding 0.001 to both X and Y coordinates."""
-        for point in self.points:
-            point.x += 0.001
-            point.y += 0.001
-    
-    def clip(self, subject_polygon):
-        """Clip this polygon with another polygon using Greiner-Hormann algorithm."""
-        perturbed_poly = self.perturb(subject_polygon)
-        output = [perturbed_poly.points]
-
-        for clip_edge in self.edges():
-            input_list = output
-            output = []
-
-            for input_polygon in input_list:
-                # Clip each polygon in the input list against the current clip edge
-                clipped = self.clip_polygon_against_edge(input_polygon, clip_edge)
-                output.extend(clipped)
-
-            if not output:
-                break
-
-        return [Polygon(data=polygon) for polygon in output]
-
-    def clip_polygon_against_edge(self, polygon, clip_edge):
-        """Clip a polygon against a single edge."""
-        input_vertices = polygon
-        output_vertices = []
-
-        for i, v1 in enumerate(input_vertices):
-            v2 = input_vertices[(i + 1) % len(input_vertices)]
-            if self.inside(v2, clip_edge):
-                if not self.inside(v1, clip_edge):
-                    intersection = self.intersection(v1, v2, clip_edge.start, clip_edge.end)
-                    output_vertices.append(intersection)
-                output_vertices.append(v2)
-            elif self.inside(v1, clip_edge):
-                intersection = self.intersection(v1, v2, clip_edge.start, clip_edge.end)
-                output_vertices.append(intersection)
-
-        return output_vertices
-
-    def inside(self, point, edge):
-        """Check if a point is inside the half-plane defined by an edge."""
-        return (edge.end.x - edge.start.x) * (point.y - edge.start.y) > (edge.end.y - edge.start.y) * (point.x - edge.start.x)
-
-    def intersection(self, a, b, c, d):
-        """Calculate intersection point between two line segments."""
-        div = (a.x - b.x) * (c.y - d.y) - (a.y - b.y) * (c.x - d.x)
-        if div == 0:
-            return None  # Lines are parallel
+    def perturb(self, redo = False):
+        """Perturb the coordinates of the polygon by adding 0.001 to both X and Y coordinates.""" ## Needed because Grainer Horman algorithm doesn't work when two points are the same
+        if redo:
+            for point in self:
+                point.x -= 0.01
+                point.y -= 0.01
+            self.perturbed = False
         else:
-            x = ((a.x * b.y - a.y * b.x) * (c.x - d.x) - (a.x - b.x) * (c.x * d.y - c.y * d.x)) / div
-            y = ((a.x * b.y - a.y * b.x) * (c.y - d.y) - (a.y - b.y) * (c.x * d.y - c.y * d.x)) / div
-            return Point(x, y)
+            for point in self:
+                point.x += 0.01
+                point.y += 0.01
+            self.perturbed = True
+
+    
+    def clip(self, clip_polygon):
+        """Clip this polygon with another polygon using Greiner-Hormann algorithm."""
+        clip_polygon.perturb()
+
+        for i, edge in enumerate(self.edges()):
+
+            for j, clip_edge in enumerate(clip_polygon.edges()):
+                if edge.intersects(clip_edge):
+                    intersection_point = edge.intersection(clip_edge)
+
+                    c_vertex = Vertex(intersection_point.x, intersection_point.y, intersect = True,
+                        alpha = intersection_point.distEuclidean(clip_edge.start))
+                    
+                    s_vertex = Vertex(intersection_point.x, intersection_point.y, intersect = True,
+                        alpha = intersection_point.distEuclidean(edge.start))
+
+                    clip_polygon.insert(c_vertex, clip_edge)
+                    self.insert(s_vertex, edge)
 
     def edges(self):
         """Generate edges of the polygon."""
-        return [Segment(self.points[i], self.points[(i + 1) % self.size]) for i in range(self.size)]
+        start = self.first
+        segments = []
+        while True:
+            segment = Segment(start, start.next)
+            segments.append(segment)
+            start = start.next
+            if start == self.first: break
+
+        return segments
 
 ## BBOX CLASS ##
 
@@ -354,3 +423,58 @@ class Bbox():
             self.ur.y > p.y and p.y > self.ll.y):
             return True
         return False
+
+
+if __name__ == "__main__":
+    import matplotlib.pyplot as plt
+
+    sample1 = [[10,0], 
+             [13,10], [5, 30], [10,0]]
+
+    sample2 = [[0,5], 
+             [26, 20],[25, 40], [0,40], [0, 5]]
+
+    sample3 = [[0,10], [5,0], [10,10], [15,0], [20,10], [25, 0],
+             [30, 20], [35, 15], [45, 0], [50, 50], [45, 40], 
+             [40, 50], [30, 45], [25, 40], [20, 30], [15, 50],
+             [10,35], [5, 50],[5,50], [0, 10]]
+
+    samplePolygon1 = Polygon(sample1, xcol=0, ycol=1)
+    samplePolygon2 = Polygon(sample2, xcol=0, ycol=1)
+    samplePolygon3 = Polygon(sample3, 0,1)
+    #print(f"Polygon 1 is closed: {samplePolygon1.isClosed()}")
+    #print(f"Polygon 2 is closed: {samplePolygon2.isClosed()}")
+
+
+
+    samplePolygon2.clip(samplePolygon1)
+    samplePolygon1.clip(samplePolygon3)
+    samplePolygon2.clip(samplePolygon3)
+
+    xs2 = [i.x for i in samplePolygon2.pop_vertices()]
+    ys2 = [i.y for i in samplePolygon2.pop_vertices()]
+    xs1 = [i.x for i in samplePolygon1.pop_vertices()]
+    ys1 = [i.y for i in samplePolygon1.pop_vertices()]
+
+    xs3 = [i.x for i in samplePolygon3.pop_vertices()]
+    ys3 = [i.y for i in samplePolygon3.pop_vertices()]
+    #xs3 = [i.x for i in poly3]
+    #ys3 = [i.y for i in poly3]
+
+    plt.plot(xs3, ys3, linestyle='dashed')
+    plt.scatter(xs3, ys3, color="red")
+    plt.scatter(xs1, ys1, color="green")
+    plt.scatter(xs2, ys2, color = "orange")
+
+    plt.plot(xs1, ys1, linestyle='dashed')
+    plt.plot(xs2,ys2, linestyle = "dashed")
+    print(samplePolygon2.pop_vertices())
+
+   # print(samplePolygon2.points)
+    """p1 = Point(x = 0, y = 0)
+    p2 = Point(x = 1, y = 1)
+    b1 = Point(x = 1, y = 0)
+    b2 = Point(x = 0, y = 1)
+
+    print(samplePolygon1.intersection(p1,p2,b1,b2))"""
+
