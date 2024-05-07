@@ -179,7 +179,7 @@ class Vertex(Point):
         self.alpha = alpha
         self.next = None
         self.prev = None
-        self.intersection_next_poly = None
+        self.link = None ## Pointer to the Vertex in the OTHER Polygon, but same Intersection
 
     def __repr__(self):
         return f'Vertex(x={self.x}, y={self.y}, intersect = {self.intersect})'
@@ -191,7 +191,7 @@ class Polygon(PointGroup):
     def __init__(self, name, data=None, xcol=None, ycol=None):
         self.name = name
         self.points = []
-        self.size = lambda self: len(self.points)
+        self.size = lambda self: len(self)
         self.first = None
         for i, d in enumerate(data):
             self.points.append(Point(name, d[xcol], d[ycol]))
@@ -230,7 +230,7 @@ class Polygon(PointGroup):
         if old is self.first:
             self.first = new
 
-    def insert(self, vertex, edge): ## Copied from Github
+    def insert(self, vertex, edge):
         """Insert and sort a vertex between a specified pair of vertices.
 
         This function inserts a vertex (most likely an intersection point)
@@ -255,8 +255,6 @@ class Polygon(PointGroup):
         edge_ends.insert(0, self.first)
         return edge_ends
 
-
-    
     # representation
     def __repr__(self):
         return f'Polygon PointGroup containing {self.size} points' 
@@ -318,15 +316,15 @@ class Polygon(PointGroup):
                 if (p.y != min(start.y, end.y)):
                     count = count + 1
 
-        def set_polygon_id(self, polygon_id):
-            self.polygon_id = polygon_id
-
         #print(f'count: {count}')
         #print(p)
         if (count%2 == 0):
             return False           
 
         return True
+
+    def set_polygon_id(self, polygon_id):
+        self.polygon_id = polygon_id
 
     def perturb(self, redo = False):
         """Perturb the coordinates of the polygon by adding 0.001 to both X and Y coordinates.""" ## Needed because Grainer Horman algorithm doesn't work when two points are the same
@@ -344,6 +342,11 @@ class Polygon(PointGroup):
     
     def clip(self, clip_polygon):
         """Clip this polygon with another polygon using Greiner-Hormann algorithm."""
+
+        if not self.bbox.intersects(clip_polygon.bbox):
+            print("Bbox test failed, no polygon intersection")
+            break
+
         clip_polygon.perturb()
 
         for i, edge in enumerate(self.edges()):
@@ -357,6 +360,9 @@ class Polygon(PointGroup):
                     
                     s_vertex = Vertex(intersection_point.x, intersection_point.y, intersect = True,
                         alpha = intersection_point.distEuclidean(edge.start))
+
+                    c_vertex.link = s_vertex
+                    s_vertex.link = c_vertex
 
                     clip_polygon.insert(c_vertex, clip_edge)
                     self.insert(s_vertex, edge)
