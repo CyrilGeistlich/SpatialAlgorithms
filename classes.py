@@ -191,7 +191,6 @@ class Polygon(PointGroup):
     def __init__(self, data=None, xcol=None, ycol=None,name=None):
         self.name = name
         self.points = []
-        self.size = lambda self: len(self)
         self.first = None
         for i, d in enumerate(data):
             self.points.append(Point(name, d[xcol], d[ycol]))
@@ -200,6 +199,15 @@ class Polygon(PointGroup):
         # SET ID COUNTER
         type(self)._id_counter += 1
         self.id = self._id_counter
+
+    # representation
+    def __repr__(self):
+        return f'Polygon PointGroup containing {self.size} points' 
+
+    @property
+    def size(self):
+        """ Achtung, .first wird nur einmal gezählt! """
+        return sum(1 for _ in self)
 
     def __iter__(self):
         """ Make the polygon iterable, traversing from head to the end. """
@@ -255,10 +263,6 @@ class Polygon(PointGroup):
         edge_ends.insert(0, self.first)
         return edge_ends
 
-    # representation
-    def __repr__(self):
-        return f'Polygon PointGroup containing {self.size} points' 
-  
     # test if polygon is closed: first and last point should be identical
     def isClosed(self):
         start = self.points[0]
