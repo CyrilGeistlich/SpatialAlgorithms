@@ -10,7 +10,8 @@ class Point():
     _id_counter = 0  # Class-level attribute to track the ID
 
     # initialise
-    def __init__(self, x=None, y=None):
+    def __init__(self, name = None, x=None, y=None):
+        self.name = name
         self.x = x
         self.y = y
         # SET ID
@@ -171,8 +172,8 @@ class Segment():
 ## POLYGON CLASS ## 
 
 class Vertex(Point):
-    def __init__(self, x,y, intersect = False, entry_exit = False, alpha = 0.0):
-        super().__init__(x,y)
+    def __init__(self, x,y, name = None, intersect = False, entry_exit = False, alpha = 0.0):
+        super().__init__(x,y,name)
         self.intersect = intersect
         self.entry_exit = entry_exit
         self.alpha = alpha
@@ -187,12 +188,13 @@ class Polygon(PointGroup):
     _id_counter = 0  # Class-level attribute to track the ID
 
     # initialise
-    def __init__(self, data=None, xcol=None, ycol=None):
+    def __init__(self, name, data=None, xcol=None, ycol=None):
+        self.name = name
         self.points = []
         self.size = lambda self: len(self.points)
         self.first = None
         for i, d in enumerate(data):
-            self.points.append(Vertex(d[xcol], d[ycol]))
+            self.points.append(Point(name, d[xcol], d[ycol]))
             self.add(Vertex(d[xcol], d[ycol]))
         self.bbox = Bbox(self)
         # SET ID COUNTER
