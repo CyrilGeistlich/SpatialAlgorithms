@@ -407,19 +407,26 @@ class Polygon(PointGroup):
         self.update_entry_exit(clip_polygon)
         clip_polygon.update_entry_exit(self)
 
-        self.unclip()
-        clip_polygon.unclip()
+        #self.unclip()
+        #clip_polygon.unclip()
 
 
     def unclip(self):
+        current = self.first
+        initial_first = self.first
 
-        for p in self:
-            if p.intersect:
-                if p.next.intersect:
-                    self.remove(p.next)
-                if p.prev.intersect:
-                    self.remove(p.prev)
-                self.remove(p)
+        while True:
+            next_node = current.next
+            if current.intersect:
+                current.prev.next = current.next
+                current.next.prev = current.prev
+                if current == self.first:
+                    self.first = current.next
+
+            if next_node == initial_first:
+                break
+            current = next_node
+
 
     def update_entry_exit(self, other):
         
