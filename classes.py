@@ -386,7 +386,6 @@ class Polygon(PointGroup):
                         if Segment(s,s.next_original_vertex()).intersects(Segment(c,c.next_original_vertex())):
 
                             intersection_point = Segment(s,s.next_original_vertex()).intersection(Segment(c,c.next_original_vertex()))
-                            print(intersection_point)
 
                             c_vertex = Vertex(intersection_point.x, intersection_point.y, intersect = True,
                                 alpha = intersection_point.distEuclidean(c))
@@ -426,6 +425,10 @@ class Polygon(PointGroup):
             if next_node == initial_first:
                 break
             current = next_node
+
+    def difference(self, other):
+        self.clip(other)
+        print("not yet implemented")
 
 
     def update_entry_exit(self, other):
@@ -548,9 +551,9 @@ if __name__ == "__main__":
 
    # plt.plot(xs1, ys1, linestyle='dashed')
     plt.plot(xs2,ys2, linestyle = "dashed")
-    #print(f"{samplePolygon2.pop_vertices()} \n ")
-    #print(samplePolygon2)
-    #print(f"pop_vertices_length: {len(samplePolygon2.pop_vertices())}")
+    print(f"{samplePolygon2.pop_vertices()} \n ")
+    print(samplePolygon2)
+    print(f"pop_vertices_length: {len(samplePolygon2.pop_vertices())}")
 
    # print(samplePolygon2.points)
     """p1 = Point(x = 0, y = 0)
