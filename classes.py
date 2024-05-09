@@ -213,6 +213,10 @@ class Vertex(Point):
                     return c
             return c
 
+    def mark_processed(self):
+        self.processed = True
+        if self.link and not self.link.processed:
+            self.link.mark_processed()
 
 class Polygon(PointGroup):  
     _id_counter = 0  # Class-level attribute to track the ID
@@ -448,40 +452,39 @@ class Polygon(PointGroup):
                 break
             current = next_node
 
-    def difference(self, other):
+    def intersection(self, other):
 
         self.clip(other)
         current = self.first.next_vertex(next_original=False)
         result = []
 
-        while not current.processed:
-            current.processed = True
+        while current.intersect and not current.processed:
+            #current = self.first.next_vertex(next_original=False, unprocessed=True)
+            current.mark_processed()
             clipped = Polygon()
-            #clipped.add(Vertex(current.x,current.y))
+            clipped.add(Vertex(current.x,current.y))
 
             while True:
-                if current.entry_exit == "exit":
-                    current.processed = True
-                    clipped.add(Vertex(current.x,current.y))
-                    current = current.next
-                    while not current.intersect:
-                        current.processed = True
-                        clipped.add(Vertex(current.x,current.y))
-                        current = current.next
-                    current = current.link
+                current.mark_processed()
                 if current.entry_exit == "entry":
-                    current.processed = True
-                    clipped.add(Vertex(current.x,current.y))
-                    current = current.link.prev
-                    while not current.intersect:
-                        current.processed = True
+                    while True:
+                        current = current.next
                         clipped.add(Vertex(current.x,current.y))
+                        if current.intersect:
+                            break
+                #if current.entry_exit == "entry":
+                else:
+                    while True:
                         current = current.prev
-                    current = current.link
-                if current == clipped.first:
-                    current.proceesed = True
+                        clipped.add(Vertex(current.x,current.y))
+                        if current.intersect:
+                            break
+
+                current = current.link
+
+                if current.processed:
                     result.append(clipped)
-                    current = self.first.next_vertex(next_original=False, unprocessed= True)
+                    current = self.first.next_vertex(next_original=False, unprocessed=True)
                     break
         
         self.unclip()
@@ -581,7 +584,7 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
     sample1 = [[10,0], 
-             [13,10], [5, 30], [10,0]]
+             [13,10], [6, 53], [10,0]]
 
     sample2 = [[-1,5], 
              [26, 20],[25, 42], [0,40], [-1, 5]]
@@ -594,10 +597,14 @@ if __name__ == "__main__":
              [40, 50], [30, 45], [25, 40], [20, 30], [15, 50],
              [10,35],[5,50], [0, 10]]
 
+    sample5 = [[30, 45], [25,40], [20,30], [30,45]]
+
+
     poly1 = Polygon(sample1, xcol=0, ycol=1)
     poly2 = Polygon(sample2, xcol=0, ycol=1)
     poly3 = Polygon(sample3, 0,1)
     poly4 = Polygon(sample4, 0,1)
+    poly5 = Polygon(sample5, 0,1)
 
     #print(f"Polygon 1 is closed: {samplePolygon1.isClosed()}")
    # print(f"Polygon 2 is closed: {poly2.isClosed()}")
@@ -607,5 +614,5 @@ if __name__ == "__main__":
     poly1.viz()
     poly2.viz()
 
-diff = poly2.difference(poly1)
-for p in diff: p.viz()
+    diff = poly2.intersection(poly1)
+    #for p in diff: p.viz()
