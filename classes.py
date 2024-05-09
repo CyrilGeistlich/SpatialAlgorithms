@@ -468,6 +468,7 @@ class Polygon(PointGroup):
                         current.processed = True
                         clipped.add(Vertex(current.x,current.y))
                         current = current.next
+                    current = current.link
                 if current.entry_exit == "entry":
                     current.processed = True
                     clipped.add(Vertex(current.x,current.y))
@@ -476,6 +477,7 @@ class Polygon(PointGroup):
                         current.processed = True
                         clipped.add(Vertex(current.x,current.y))
                         current = current.prev
+                    current = current.link
                 if current == clipped.first:
                     result.append(clipped)
                     current = self.first.next_vertex(next_original=False, unprocessed= True)
