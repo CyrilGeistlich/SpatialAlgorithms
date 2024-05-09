@@ -10,7 +10,7 @@ class Point():
     _id_counter = 0  # Class-level attribute to track the ID
 
     # initialise
-    def __init__(self, x=None, y=None,name = None,):
+    def __init__(self, x=None, y=None,name = None):
         self.name = name
         self.x = x
         self.y = y
@@ -163,6 +163,9 @@ class Segment():
         d = other.end
         div = (a.x - b.x) * (c.y - d.y) - (a.y - b.y) * (c.x - d.x)
         if div == 0:
+            print("you fucked up in function -> intersection")
+            print(self)
+            print(other)
             return f"doesn't work: {a}, {b},{c},{d} \n"  # Lines are parallel
         else:
             x = ((a.x * b.y - a.y * b.x) * (c.x - d.x) - (a.x - b.x) * (c.x * d.y - c.y * d.x)) / div
@@ -180,16 +183,36 @@ class Vertex(Point):
         self.next = None
         self.prev = None
         self.link = None ## Pointer to the Vertex in the OTHER Polygon, but same Intersection
+        self.processed = False
 
     def __repr__(self):
-        return f'Vertex(x={self.x}, y={self.y}, intersect = {self.intersect})'
+        return f'Vertex(x={self.x}, y={self.y}, intersect = {self.intersect}, processed = {self.processed}, {self.entry_exit})'
 
-    def next_original_vertex(self):
+    def next_vertex(self, next_original = True, unprocessed = None):
         """Return the next non intersecting vertex after the one specified."""
-        c = self.next
-        while c.intersect:
-            c = c.next
-        return c
+        start = self
+        if next_original:
+            c = self.next
+            while c.intersect:
+                c = c.next
+                if c == start:
+                    return c
+            return c
+        elif unprocessed: ## find next intersection
+            c = self.next
+            while not (c.intersect and not c.processed):
+                c = c.next
+                if c == start:
+                    return c
+            return c
+        else:
+            c = self.next
+            while not c.intersect:
+                c = c.next
+                if c == start:
+                    return c
+            return c
+
 
 class Polygon(PointGroup):  
     _id_counter = 0  # Class-level attribute to track the ID
@@ -199,10 +222,13 @@ class Polygon(PointGroup):
         self.name = name
         self.points = []
         self.first = None
-        for i, d in enumerate(data):
-            self.points.append(Point(name, d[xcol], d[ycol]))
-            self.add(Vertex(d[xcol], d[ycol]))
-        self.bbox = Bbox(self)
+
+        if data:
+            for i, d in enumerate(data):
+                self.points.append(Point(name, d[xcol], d[ycol]))
+                self.add(Vertex(d[xcol], d[ycol]))
+            self.removeDuplicates()
+            self.bbox = Bbox(self)
         # SET ID COUNTER
         type(self)._id_counter += 1
         self.id = self._id_counter
@@ -294,10 +320,12 @@ class Polygon(PointGroup):
         return start == end
 
     def removeDuplicates(self):
-        oldn = len(self.points)
-        self.points = list(dict.fromkeys(self.points)) # Get rid of the duplicates
-        self.points.append(self.points[0]) # Our polygon must have one duplicate - we put it back now
-        n = len(self.points)
+        oldn = self.size
+        points = list(dict.fromkeys(self)) # Get rid of the duplicates
+        self.first = None
+        for p in points:
+            self.add(Vertex(p.x,p.y,p.name,p.intersect,p.alpha))
+        n = self.size
         print(f'The old polygon had {oldn} points, now we only have {n}.')
         
         # find area and centre of the polygon
@@ -358,34 +386,32 @@ class Polygon(PointGroup):
         """Perturb the coordinates of the polygon by adding 0.001 to both X and Y coordinates.""" ## Needed because Grainer Horman algorithm doesn't work when two points are the same
         if redo:
             for point in self:
-                point.x -= 0.01
-                point.y -= 0.01
+                point.x -= 0.1
+                #point.y -= 0.1
             self.perturbed = False
         else:
             for point in self:
-                point.x += 0.01
-                point.y += 0.01
+                point.x += 0.1
+                #point.y += 0.01
             self.perturbed = True
 
     
     def clip(self, clip_polygon):
-
-
         """Clip this polygon with another polygon using Greiner-Hormann algorithm."""
 
         if not self.bbox.intersects(clip_polygon.bbox):
             print("Bbox test failed, no polygon intersection")
             return 0
 
-        clip_polygon.perturb()
+        self.perturb()
 
         for i, s in enumerate(self):
             if not s.intersect:
                 for j, c in enumerate(clip_polygon):
                     if not c.intersect:
-                        if Segment(s,s.next_original_vertex()).intersects(Segment(c,c.next_original_vertex())):
+                        if Segment(s,s.next_vertex()).intersects(Segment(c,c.next_vertex())):
 
-                            intersection_point = Segment(s,s.next_original_vertex()).intersection(Segment(c,c.next_original_vertex()))
+                            intersection_point = Segment(s,s.next_vertex()).intersection(Segment(c,c.next_vertex()))
 
                             c_vertex = Vertex(intersection_point.x, intersection_point.y, intersect = True,
                                 alpha = intersection_point.distEuclidean(c))
@@ -396,18 +422,14 @@ class Polygon(PointGroup):
                             c_vertex.link = s_vertex
                             s_vertex.link = c_vertex
 
-                            clip_polygon.insert(c_vertex, Segment(c,c.next_original_vertex()))
-                            self.insert(s_vertex, Segment(s,s.next_original_vertex()))
+                            clip_polygon.insert(c_vertex, Segment(c,c.next_vertex()))
+                            self.insert(s_vertex, Segment(s,s.next_vertex()))
         
-        clip_polygon.perturb(redo = True)
 
         
         ## Phase 2:
         self.update_entry_exit(clip_polygon)
         clip_polygon.update_entry_exit(self)
-
-        #self.unclip()
-        #clip_polygon.unclip()
 
 
     def unclip(self):
@@ -428,8 +450,43 @@ class Polygon(PointGroup):
 
     def difference(self, other):
         self.clip(other)
-        print("not yet implemented")
+        
+        current = self.first.next_vertex(next_original=False)
+        result = []
 
+        while not current.processed:
+            current.processed = True
+            clipped = Polygon()
+            #clipped.add(Vertex(current.x,current.y))
+
+            while True:
+                if current.entry_exit == "exit":
+                    current.processed = True
+                    clipped.add(Vertex(current.x,current.y))
+                    current = current.next
+                    while not current.intersect:
+                        current.processed = True
+                        clipped.add(Vertex(current.x,current.y))
+                        current = current.next
+                if current.entry_exit == "entry":
+                    current.processed = True
+                    clipped.add(Vertex(current.x,current.y))
+                    current = current.link.prev
+                    while not current.intersect:
+                        current.processed = True
+                        clipped.add(Vertex(current.x,current.y))
+                        current = current.prev
+                if current == clipped.first:
+                    result.append(clipped)
+                    current = self.first.next_vertex(next_original=False, unprocessed= True)
+                    break
+        
+        self.unclip()
+        self.perturb(redo=True)
+        other.unclip()
+        return result
+
+            
 
     def update_entry_exit(self, other):
         
@@ -453,6 +510,15 @@ class Polygon(PointGroup):
             if start == self.first: break
 
         return segments
+
+    def viz(self):
+        x = [i.x for i in self]
+        x.append(self.first.x)
+        y = [i.y for i in self]
+        y.append(self.first.y)
+        plt.plot(x, y, linestyle='dashed')
+        plt.scatter(x, y)
+
 
 ## BBOX CLASS ##
 
@@ -525,43 +591,19 @@ if __name__ == "__main__":
              [40, 50], [30, 45], [25, 40], [20, 30], [15, 50],
              [10,35], [5, 50],[5,50], [0, 10]]
 
-    samplePolygon1 = Polygon(sample1, xcol=0, ycol=1)
-    samplePolygon2 = Polygon(sample2, xcol=0, ycol=1)
-    samplePolygon3 = Polygon(sample3, 0,1)
+    poly1 = Polygon(sample1, xcol=0, ycol=1)
+    poly2 = Polygon(sample2, xcol=0, ycol=1)
+    poly3 = Polygon(sample3, 0,1)
+    poly4 = Polygon(sample4, 0,1)
+
     #print(f"Polygon 1 is closed: {samplePolygon1.isClosed()}")
-    print(f"Polygon 2 is closed: {samplePolygon2.isClosed()}")
+   # print(f"Polygon 2 is closed: {poly2.isClosed()}")
 
-    print(samplePolygon3.containsPoint(samplePolygon2.first.next))
+    #print(poly3.containsPoint(poly2.first.next))
 
+    poly1.viz()
+    poly2.viz()
 
-
-    #samplePolygon2.clip(samplePolygon1)
-    samplePolygon3.clip(samplePolygon2)
-
-    xs2 = [i.x for i in samplePolygon2.pop_vertices()]
-    ys2 = [i.y for i in samplePolygon2.pop_vertices()]
-   # xs1 = [i.x for i in samplePolygon1.pop_vertices()]
-    #ys1 = [i.y for i in samplePolygon1.pop_vertices()]
-
-    xs3 = [i.x for i in samplePolygon3.pop_vertices()]
-    ys3 = [i.y for i in samplePolygon3.pop_vertices()]
-
-    plt.plot(xs3, ys3, linestyle='dashed')
-    plt.scatter(xs3, ys3, color="red")
-   # plt.scatter(xs1, ys1, color="green")
-    plt.scatter(xs2, ys2, color = "green")
-
-   # plt.plot(xs1, ys1, linestyle='dashed')
-    plt.plot(xs2,ys2, linestyle = "dashed")
-    print(f"{samplePolygon2.pop_vertices()} \n ")
-    print(samplePolygon2)
-    print(f"pop_vertices_length: {len(samplePolygon2.pop_vertices())}")
-
-   # print(samplePolygon2.points)
-    """p1 = Point(x = 0, y = 0)
-    p2 = Point(x = 1, y = 1)
-    b1 = Point(x = 1, y = 0)
-    b2 = Point(x = 0, y = 1)
-
-    print(samplePolygon1.intersection(p1,p2,b1,b2))"""
-
+diff = poly2.difference(poly1)
+for p in diff: p.viz()
+poly2.clip(poly1)
