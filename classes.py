@@ -449,8 +449,8 @@ class Polygon(PointGroup):
             current = next_node
 
     def difference(self, other):
+
         self.clip(other)
-        
         current = self.first.next_vertex(next_original=False)
         result = []
 
@@ -479,6 +479,7 @@ class Polygon(PointGroup):
                         current = current.prev
                     current = current.link
                 if current == clipped.first:
+                    current.proceesed = True
                     result.append(clipped)
                     current = self.first.next_vertex(next_original=False, unprocessed= True)
                     break
@@ -582,8 +583,8 @@ if __name__ == "__main__":
     sample1 = [[10,0], 
              [13,10], [5, 30], [10,0]]
 
-    sample2 = [[0,5], 
-             [26, 20],[25, 40], [0,40], [0, 5]]
+    sample2 = [[-1,5], 
+             [26, 20],[25, 42], [0,40], [-1, 5]]
 
     sample4 = [[2,10] ,[20, 10], [20, 50],
              [2,50],  [2, 10]]
@@ -591,7 +592,7 @@ if __name__ == "__main__":
     sample3 = [[0,10], [5,0], [10,10], [15,0], [20,10], [25, 0],
              [30, 20], [35, 15], [45, 0], [50, 50], [45, 40], 
              [40, 50], [30, 45], [25, 40], [20, 30], [15, 50],
-             [10,35], [5, 50],[5,50], [0, 10]]
+             [10,35],[5,50], [0, 10]]
 
     poly1 = Polygon(sample1, xcol=0, ycol=1)
     poly2 = Polygon(sample2, xcol=0, ycol=1)
@@ -608,4 +609,3 @@ if __name__ == "__main__":
 
 diff = poly2.difference(poly1)
 for p in diff: p.viz()
-poly2.clip(poly1)
