@@ -334,7 +334,6 @@ class Polygon(PointGroup):
         for p in points:
             self.add(Vertex(p.x,p.y,p.name,p.intersect,p.alpha))
         n = self.size
-        print(f'The old polygon had {oldn} points, now we only have {n}.')
         
         # find area and centre of the polygon
     # - based on GIS Algorithms, Ch.2 p9-10, by Ningchuan Xiao, publ. 2016 
