@@ -218,6 +218,10 @@ class Vertex(Point):
         if self.link and not self.link.processed:
             self.link.mark_processed()
 
+    def perturb(self):
+        self.x += 0.1
+        self.y += 0.1
+
 class Polygon(PointGroup):  
     _id_counter = 0  # Class-level attribute to track the ID
 
@@ -407,13 +411,18 @@ class Polygon(PointGroup):
             print("Bbox test failed, no polygon intersection")
             return 0
 
-        self.perturb()
+        #self.perturb()
 
         for i, s in enumerate(self):
             if not s.intersect:
                 for j, c in enumerate(clip_polygon):
                     if not c.intersect:
                         if Segment(s,s.next_vertex()).intersects(Segment(c,c.next_vertex())):
+
+                            if s.leftRight(c,c.next_vertex()) == 0: ## If Point in Polygon A is colinear with Edge in B
+                                s.perturb()
+                            if c.leftRight(s,s.next_vertex()) == 0:
+                                c.perturb()
 
                             intersection_point = Segment(s,s.next_vertex()).intersection(Segment(c,c.next_vertex()))
 
@@ -488,10 +497,103 @@ class Polygon(PointGroup):
                     break
         
         self.unclip()
-        self.perturb(redo=True)
+       # self.perturb(redo=True)
         other.unclip()
         return result
 
+
+    def union(self, other):
+        self.clip(other)
+        current = self.first.next_vertex(next_original=False)
+        result = []
+
+        while current.intersect and not current.processed:
+            #current = self.first.next_vertex(next_original=False, unprocessed=True)
+            current.mark_processed()
+            clipped = Polygon()
+            clipped.add(Vertex(current.x,current.y))
+
+            while True:
+                current.mark_processed()
+                if current.entry_exit == "entry":
+                    while True:
+                        current = current.prev
+                        clipped.add(Vertex(current.x,current.y))
+                        if current.intersect:
+                            break
+                #if current.entry_exit == "entry":
+                else:
+                    while True:
+                        current = current.next
+                        clipped.add(Vertex(current.x,current.y))
+                        if current.intersect:
+                            break
+
+                current = current.link
+
+                if current.processed:
+                    result.append(clipped)
+                    current = self.first.next_vertex(next_original=False, unprocessed=True)
+                    break
+        
+        self.unclip()
+       # self.perturb(redo=True)
+        other.unclip()
+        return result
+
+
+    def difference(self, other):
+        self.clip(other)
+        current = self.first.next_vertex(next_original=False)
+        result = []
+
+        while current.intersect and not current.processed:
+            #current = self.first.next_vertex(next_original=False, unprocessed=True)
+            current.mark_processed()
+            clipped = Polygon()
+            clipped.add(Vertex(current.x,current.y))
+
+            while True:
+                current.mark_processed()
+                if current.entry_exit == "entry" and not (current.prev in self): ##yes
+                    current = current.link
+                    while True:
+                        current = current.next
+                        clipped.add(Vertex(current.x,current.y))
+                        if current.intersect:
+                            break
+
+                elif current.entry_exit == "entry" and current.prev in self: ##yes
+                    current = current.link
+                    while True:
+                        current = current.prev
+                        clipped.add(Vertex(current.x,current.y))
+                        if current.intersect:
+                            break
+
+                elif current.entry_exit == "exit" and current.prev in self:
+                    while True:
+                        current = current.next
+                        clipped.add(Vertex(current.x,current.y))
+                        if current.intersect:
+                            break
+
+                else: # current.entry_exit == "exit" and not (current.prev in self):
+                    while True: ## I think I never tested this part?
+                        current = current.next
+                        clipped.add(Vertex(current.x,current.y))
+                        if current.intersect:
+                            break
+
+                if current.processed:
+                    result.append(clipped)
+                    current = self.first.next_vertex(next_original=False, unprocessed=True)
+                    break
+        
+        self.unclip()
+       # self.perturb(redo=True)
+        other.unclip()
+        return result
             
 
     def update_entry_exit(self, other):
@@ -610,9 +712,21 @@ if __name__ == "__main__":
    # print(f"Polygon 2 is closed: {poly2.isClosed()}")
 
     #print(poly3.containsPoint(poly2.first.next))
-
-    poly1.viz()
+    plt.figure()
     poly2.viz()
+    poly3.viz()
 
-    diff = poly2.intersection(poly1)
+    diff1 = poly3.difference(poly2)
+    diff2 = poly2.difference(poly3)
+    intersection = poly3.intersection(poly2)
+    union = poly3.union(poly2)
+
+    plt.figure()
+    for p in diff1: p.viz()
+    plt.figure()
+    for p in diff2: p.viz()
+    plt.figure()
+    for p in intersection: p.viz()
+    plt.figure()
+    for p in union: p.viz()
     #for p in diff: p.viz()
