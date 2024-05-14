@@ -1,6 +1,7 @@
 ## LIBRARIES ##
 
 from numpy import sqrt, radians, arcsin, sin, cos
+import json
 
 ## DEFINE CLASSES HERE ##
 
@@ -230,6 +231,9 @@ class Polygon(PointGroup):
         self.name = name
         self.points = []
         self.first = None
+        # SET ID COUNTER
+        type(self)._id_counter += 1
+        self.id = self._id_counter
 
         if data:
             for i, d in enumerate(data):
@@ -237,9 +241,7 @@ class Polygon(PointGroup):
                 self.add(Vertex(d[xcol], d[ycol]))
             self.removeDuplicates()
             self.bbox = Bbox(self)
-        # SET ID COUNTER
-        type(self)._id_counter += 1
-        self.id = self._id_counter
+
 
     # representation
     def __repr__(self):
@@ -385,9 +387,6 @@ class Polygon(PointGroup):
             return False           
 
         return True
-
-    def set_polygon_id(self, polygon_id):
-        self.polygon_id = polygon_id
 
     def perturb(self, redo = False):
         """Perturb the coordinates of the polygon by adding 0.001 to both X and Y coordinates.""" ## Needed because Grainer Horman algorithm doesn't work when two points are the same
@@ -680,6 +679,31 @@ class Bbox():
             return True
         return False
 
+def process_json_file(json_files_data):
+
+    all_data = {}
+    for json_file, return_name in json_files_data:
+        if return_name not in all_data:
+            all_data[return_name] = []
+
+        with open(json_file) as f:
+            data = json.load(f)
+
+            for feature in data['features']:
+                if feature['geometry']['type'] == 'Point':
+                    name = feature['properties']['NAME']
+                    coordinates = feature['geometry']['coordinates']
+                    x, y = coordinates[:2] 
+                    point = Point(x, y, name)
+                    all_data[return_name].append(point)
+                elif feature['geometry']['type'] == 'Polygon':
+                    name = feature['properties']['name']
+                    points = feature['geometry']['coordinates'][0]
+                    x_coords, y_coords = zip(*points)
+                    polygon = Polygon(list(zip(x_coords, y_coords)), 0, 1,name)
+                    all_data[return_name].append(polygon)
+
+    return all_data
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
@@ -729,3 +753,8 @@ if __name__ == "__main__":
     plt.figure()
     for p in union: p.viz()
     #for p in diff: p.viz()
+
+    path = "/Users/sebastiangmur/Projekte/Uzh/GEO877_Spatial_Algorithms/SpatialAlgorithms/data/swissnames_points_json_export.geojson"
+
+
+    test_polys = process_json_file(json_files_data)
