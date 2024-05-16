@@ -1,5 +1,6 @@
 ## LIBRARIES ##
 
+import matplotlib.pyplot as plt
 from numpy import sqrt, radians, arcsin, sin, cos
 import json
 import folium
@@ -368,16 +369,20 @@ class Polygon(PointGroup):
         a = 0
         xmean = 0
         ymean = 0
-        for i in range(0, self.size-1):
-            ai = self[i].x * self[i+1].y - self[i+1].x * self[i].y
+
+        for p in self:
+            ai = p.x * p.next.y - p.next.x * p.y
             a += ai
-            xmean += (self[i+1].x + self[i].x) * ai
-            ymean += (self[i+1].y + self[i].y) * ai
+            xmean += (p.next.x + p.x) * ai
+            ymean += (p.next.y + p.y) * ai
+            # print(f"ai ={ai},a ={a}, xmean={xmean},ymean={ymean}")
 
         a = a/2.0   # signed area of polygon (can be a negative)
     
         return a, xmean, ymean #Notice this method returns three values, which we use in area and centre
     
+
+
     def area(self):
         a, xmean, ymean = self.__signedArea()
         area = abs(a)   # absolute area of polygon
@@ -802,6 +807,12 @@ def process_json_file(json_files_data):
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
+    sample0 = [[100,100], [110,100], [110,110], [100,110],[100,100]]
+    poly = Polygon(sample0, xcol=0, ycol=1)
+
+    poly.viz()
+    print(poly.area())
+
     sample1 = [[10,0], 
              [13,10], [6, 53], [10,0]]
 
@@ -830,26 +841,26 @@ if __name__ == "__main__":
    # print(f"Polygon 2 is closed: {poly2.isClosed()}")
 
     #print(poly3.containsPoint(poly2.first.next))
-    plt.figure()
-    poly2.viz()
-    poly3.viz()
+    # plt.figure()
+    # poly2.viz()
+    # poly3.viz()
 
-    diff1 = poly3.difference(poly2)
-    diff2 = poly2.difference(poly3)
-    intersection = poly3.intersection(poly2)
-    union = poly3.union(poly2)
+    # diff1 = poly3.difference(poly2)
+    # diff2 = poly2.difference(poly3)
+    # intersection = poly3.intersection(poly2)
+    # union = poly3.union(poly2)
 
-    plt.figure()
-    for p in diff1: p.viz()
-    plt.figure()
-    for p in diff2: p.viz()
-    plt.figure()
-    for p in intersection: p.viz()
-    plt.figure()
-    for p in union: p.viz()
-    #for p in diff: p.viz()
+    # plt.figure()
+    # for p in diff1: p.viz()
+    # plt.figure()
+    # for p in diff2: p.viz()
+    # plt.figure()
+    # for p in intersection: p.viz()
+    # plt.figure()
+    # for p in union: p.viz()
+    # #for p in diff: p.viz()
 
-    path = "/Users/sebastiangmur/Projekte/Uzh/GEO877_Spatial_Algorithms/SpatialAlgorithms/data/swissnames_points_json_export.geojson"
-    json_files_data = [(path, "name")]
+    # path = "/Users/sebastiangmur/Projekte/Uzh/GEO877_Spatial_Algorithms/SpatialAlgorithms/data/swissnames_points_json_export.geojson"
+    # json_files_data = [(path, "name")]
 
-    test_polys = process_json_file(json_files_data)
+    # test_polys = process_json_file(json_files_data)
