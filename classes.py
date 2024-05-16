@@ -755,6 +755,6 @@ if __name__ == "__main__":
     #for p in diff: p.viz()
 
     path = "/Users/sebastiangmur/Projekte/Uzh/GEO877_Spatial_Algorithms/SpatialAlgorithms/data/swissnames_points_json_export.geojson"
-
+    json_files_data = [(path, "name")]
 
     test_polys = process_json_file(json_files_data)
