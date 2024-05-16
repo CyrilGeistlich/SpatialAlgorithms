@@ -16,6 +16,7 @@ process_json_file()
 
 # 4. COUNT, ANALYSIS PREPROCESSING (CYRIL)
 
+
+
 # 5. ANALYSIS AND VISUALIZATION (JON)
 
-interactive_map = classes.Polygon.viz_interactive()
