@@ -16,7 +16,10 @@ class Point():
         self.name = name
         self.x = x
         self.y = y
-        self.objektart = objektart
+        if objektart in ["Alpiner Gipfel", "Erratischer Block", "Felsblock", "Felskopf", "Gipfel", "Grotte, Hoehle", "Hauptgipfel", "Haupthuegel", "Huegel", "Quelle", "Pass", "Wasserfall", "Aussichtspunkt"]:
+            self.objektart = "Bergname"
+        else:
+            self.objektart = "Flurname"
         # SET ID
         type(self)._id_counter += 1
         self.id = self._id_counter
