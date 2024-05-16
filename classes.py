@@ -23,7 +23,7 @@ class Point():
     
     # representation
     def __repr__(self):
-        return f'Point(x={self.x}, y={self.y})'
+        return f'Point {self.name} (x={self.x}, y={self.y}, objektart={self.objektart}) '
 
         # Test for equality between Points
     def __eq__(self, other): 
@@ -226,20 +226,21 @@ class Vertex(Point):
         self.y += 0.1
 
 class Polygon(PointGroup):  
-    _id_counter = 0  # Class-level attribute to track the ID
+    #_id_counter = 0  # Class-level attribute to track the ID
 
     # initialise
-    def __init__(self, data=None, xcol=None, ycol=None,name=None):
+    def __init__(self, data=None, xcol=None, ycol=None,name=None, id = None):
         self.name = name
-        self.points = []
+        #self.points = []
         self.first = None
         # SET ID COUNTER
-        type(self)._id_counter += 1
-        self.id = self._id_counter
+        #type(self)._id_counter += 1
+        #self.id = self._id_counter
+        self.id = id
 
         if data:
             for i, d in enumerate(data):
-                self.points.append(Point(d[xcol], d[ycol],name))
+                #self.points.append(Point(d[xcol], d[ycol],name))
                 self.add(Vertex(d[xcol], d[ycol]))
             self.removeDuplicates()
             self.bbox = Bbox(self)
@@ -700,12 +701,14 @@ def process_json_file(json_files_data):
             for feature in data['features']:
                 if feature['geometry']['type'] == 'Point':
                     name = feature['properties']['NAME']
+                    objektart = feature['properties']['OBJEKTART']
                     coordinates = feature['geometry']['coordinates']
                     x, y = coordinates[:2] 
-                    point = Point(x, y, name)
+                    point = Point(x, y, name, objektart)
                     all_data[return_name].append(point)
                 elif feature['geometry']['type'] == 'Polygon':
                     name = feature['properties']['name']
+                    id = feature['properties']['id']
                     points = feature['geometry']['coordinates'][0]
                     x_coords, y_coords = zip(*points)
                     polygon = Polygon(list(zip(x_coords, y_coords)), 0, 1,name)
