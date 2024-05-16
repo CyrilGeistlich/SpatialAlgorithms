@@ -12,10 +12,11 @@ class Point():
     _id_counter = 0  # Class-level attribute to track the ID
 
     # initialise
-    def __init__(self, x=None, y=None,name = None):
+    def __init__(self, x=None, y=None,name = None, objektart = None):
         self.name = name
         self.x = x
         self.y = y
+        self.objektart = objektart
         # SET ID
         type(self)._id_counter += 1
         self.id = self._id_counter
@@ -238,7 +239,7 @@ class Polygon(PointGroup):
 
         if data:
             for i, d in enumerate(data):
-                self.points.append(Point(name, d[xcol], d[ycol]))
+                self.points.append(Point(d[xcol], d[ycol],name))
                 self.add(Vertex(d[xcol], d[ycol]))
             self.removeDuplicates()
             self.bbox = Bbox(self)
@@ -246,7 +247,7 @@ class Polygon(PointGroup):
 
     # representation
     def __repr__(self):
-        return f'Polygon PointGroup containing {self.size} points' 
+        return f'Polygon {self.name} consisting of {self.size} points' 
 
     @property
     def size(self):
@@ -410,7 +411,6 @@ class Polygon(PointGroup):
             print("Bbox test failed, no polygon intersection")
             return 0
 
-        #self.perturb()
 
         for i, s in enumerate(self):
             if not s.intersect:
