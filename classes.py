@@ -2,6 +2,7 @@
 
 from numpy import sqrt, radians, arcsin, sin, cos
 import json
+import folium
 
 ## DEFINE CLASSES HERE ##
 
@@ -625,6 +626,13 @@ class Polygon(PointGroup):
         plt.plot(x, y, linestyle='dashed')
         plt.scatter(x, y)
 
+    def viz_interactive(self):
+        m = folium.Map(location=[0, 0], zoom_start=2)
+        for poly in self:
+            coords = poly.get_coordinates()
+            folium_polygon = folium.Polygon(locations=coords, color='red')
+            folium_polygon.add_to(m)
+        return m
 
 ## BBOX CLASS ##
 
