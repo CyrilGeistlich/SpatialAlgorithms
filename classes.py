@@ -248,6 +248,24 @@ class Polygon(PointGroup):
             self.removeDuplicates()
             self.bbox = Bbox(self)
 
+    def __eq__(self, other): 
+        if not isinstance(other, Polygon):
+            return NotImplemented
+
+        selfpoint = self.first
+        otherpoint = other.first
+        while selfpoint == otherpoint:
+            selfpoint = selfpoint.next
+            otherpoint = otherpoint.next
+            if selfpoint == self.first:
+                break
+        
+        return selfpoint == otherpoint
+
+            
+
+
+
 
     # representation
     def __repr__(self):
@@ -641,6 +659,7 @@ class Polygon(PointGroup):
 ## BBOX CLASS ##
 
 class Bbox():
+
     
     # initialise
     def __init__(self, data):
@@ -691,6 +710,57 @@ class Bbox():
             return True
         return False
 
+class Polygon_Data():
+
+    def __init__(self, municipalities_polygons, muns_only_vegetation_area_polygons):
+        self.raw_municipalities_polygons = municipalities_polygons
+        self.raw_muns_only_vegetation_area_polygons = muns_only_vegetation_area_polygons
+
+
+    def remove_unique_entries(self):
+        list1 = self.raw_municipalities_polygons
+        list2 = self.raw_muns_only_vegetation_area_polygons
+        
+        # Extract IDs from both lists
+        ids_list1 = {obj.id for obj in list1}
+        ids_list2 = {obj.id for obj in list2}
+        
+        # Find the intersection of IDs
+        common_ids = ids_list1 & ids_list2
+        
+        # Identify and remove unique objects from list1
+        unique_to_list1 = [obj for obj in list1 if obj.id not in common_ids]
+        list1[:] = [obj for obj in list1 if obj.id in common_ids]
+        list1 = sorted(list1, key=lambda obj: obj.id)
+        self.cleaned_mun_polys = list1
+        
+        # Identify and remove unique objects from list2
+        unique_to_list2 = [obj for obj in list2 if obj.id not in common_ids]
+        list2[:] = [obj for obj in list2 if obj.id in common_ids]
+        list2 = sorted(list2, key=lambda obj: obj.id)
+        self.cleaned_mun_only_vegetation_polys = list2
+        # Print unique objects removed from list1
+        print(f"{len(unique_to_list1)} unique objects removed from municipalities_polygons:")
+        for obj in unique_to_list1:
+            print(f"{obj} BFS_Nr={obj.id}")
+        
+        # Print unique objects removed from list2
+        print(f"\n{len(unique_to_list2)} unique objects removed from muns_only_vegetation_area_polygons:")
+        for obj in unique_to_list2:
+            print(f"{obj} BFS_Nr={obj.id}")
+
+    def apply_difference(self):
+        res = []
+        for i in range(len(self.cleaned_mun_polys)):
+            diff_polygons = self.cleaned_mun_polys[i].difference(self.cleaned_mun_only_vegetation_polys[i])
+            res.append(diff_polygons)
+        return(res)
+
+
+
+
+
+
 def process_json_file(json_files_data):
 
     all_data = {}
@@ -714,10 +784,20 @@ def process_json_file(json_files_data):
                     id = feature['properties']['id']
                     points = feature['geometry']['coordinates'][0]
                     x_coords, y_coords = zip(*points)
-                    polygon = Polygon(list(zip(x_coords, y_coords)), 0, 1,name)
+                    polygon = Polygon(list(zip(x_coords, y_coords)), 0, 1,name, id)
                     all_data[return_name].append(polygon)
 
     return all_data
+
+
+    def calc_municipalities_poly_difference(municipalities, municipalities_only_vegetation_area):
+        mun_ids = [obj.id for obj in data['Gemeinden_mit_Berge']]
+
+        for id in mun_ids:
+            print(id)
+
+
+
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
@@ -744,6 +824,7 @@ if __name__ == "__main__":
     poly3 = Polygon(sample3, 0,1)
     poly4 = Polygon(sample4, 0,1)
     poly5 = Polygon(sample5, 0,1)
+
 
     #print(f"Polygon 1 is closed: {samplePolygon1.isClosed()}")
    # print(f"Polygon 2 is closed: {poly2.isClosed()}")
