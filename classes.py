@@ -658,6 +658,9 @@ class Bbox():
     def __init__(self, data):
     # using built-in `isinstance` to test what class has been used to initialise the object   
 
+        if data is None or (hasattr(data, 'size') and data.size == 0):
+            print("Warning: Empty data is not implemented")
+            
         # for Segment objects 
         if isinstance(data, Segment) == True:
             x = [data.start.x, data.end.x]
