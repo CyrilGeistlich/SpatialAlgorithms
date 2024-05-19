@@ -179,8 +179,6 @@ class Segment():
             y = ((a.x * b.y - a.y * b.x) * (c.y - d.y) - (a.y - b.y) * (c.x * d.y - c.y * d.x)) / div
             return Point(x, y)
 
-## POLYGON CLASS ## 
-
 class Vertex(Point):
     def __init__(self, x,y, name = None, intersect = False, alpha = 0.0):
         super().__init__(x,y,name)
@@ -243,7 +241,10 @@ class Polygon(PointGroup):
                 #self.points.append(Point(d[xcol], d[ycol],name))
                 self.add(Vertex(d[xcol], d[ycol]))
             self.removeDuplicates()
-            self.bbox = Bbox(self)
+
+    @property
+    def bbox(self):
+        return Bbox(self)
 
     def __eq__(self, other): 
         if not isinstance(other, Polygon):
