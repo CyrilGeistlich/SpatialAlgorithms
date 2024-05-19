@@ -414,8 +414,8 @@ class Polygon(PointGroup):
         #print(p)
         if (count%2 == 0):
             return False           
-
-        return True
+        else:
+            return (self, p)
 
     def perturb(self, redo = False):
         """Perturb the coordinates of the polygon by adding 0.001 to both X and Y coordinates.""" ## Needed because Grainer Horman algorithm doesn't work when two points are the same
@@ -766,9 +766,6 @@ class Polygon_Data():
 
 
 
-
-
-
 def process_json_file(json_files_data):
 
     all_data = {}
@@ -797,14 +794,27 @@ def process_json_file(json_files_data):
 
     return all_data
 
+def point_polygon_intersection(polygon_list,point_list):
+    #Create empty List and define entry
+    contained_points = []
+    entry = {
+        'polygon_id': Polygon.id,
+        'point_id': point.id,
+        'name': point.name,
+        'objektart': point.objektart
+    } 
+    # iterate through points and polygons
+    for point in point_list:
+        for poly in polygon_list:
+            if poly.containsPoint(point):
+                contained_points.append(entry)
+    return contained_points
 
     def calc_municipalities_poly_difference(municipalities, municipalities_only_vegetation_area):
         mun_ids = [obj.id for obj in data['Gemeinden_mit_Berge']]
 
         for id in mun_ids:
             print(id)
-
-
 
 
 if __name__ == "__main__":
