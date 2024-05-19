@@ -235,11 +235,7 @@ class Polygon(PointGroup):
     # initialise
     def __init__(self, data=None, xcol=None, ycol=None,name=None, id = None):
         self.name = name
-        #self.points = []
         self.first = None
-        # SET ID COUNTER
-        #type(self)._id_counter += 1
-        #self.id = self._id_counter
         self.id = id
 
         if data:
@@ -262,11 +258,6 @@ class Polygon(PointGroup):
                 break
         
         return selfpoint == otherpoint
-
-            
-
-
-
 
     # representation
     def __repr__(self):
@@ -381,8 +372,6 @@ class Polygon(PointGroup):
     
         return a, xmean, ymean #Notice this method returns three values, which we use in area and centre
     
-
-
     def area(self):
         a, xmean, ymean = self.__signedArea()
         area = abs(a)   # absolute area of polygon
@@ -488,7 +477,6 @@ class Polygon(PointGroup):
             current = next_node
 
     def intersection(self, other):
-
         self.clip(other)
         current = self.first.next_vertex(next_original=False)
         result = []
@@ -665,7 +653,6 @@ class Polygon(PointGroup):
 
 class Bbox():
 
-    
     # initialise
     def __init__(self, data):
     # using built-in `isinstance` to test what class has been used to initialise the object   
@@ -765,7 +752,6 @@ class Polygon_Data():
         return(res)
 
 
-
 def process_json_file(json_files_data):
 
     all_data = {}
@@ -794,20 +780,14 @@ def process_json_file(json_files_data):
 
     return all_data
 
-def point_polygon_intersection(polygon_list,point_list):
+def point_polygon_matching(point_list,polygon_list,):
     #Create empty List and define entry
     contained_points = []
-    entry = {
-        'polygon_id': Polygon.id,
-        'point_id': point.id,
-        'name': point.name,
-        'objektart': point.objektart
-    } 
     # iterate through points and polygons
     for point in point_list:
         for poly in polygon_list:
             if poly.containsPoint(point):
-                contained_points.append(entry)
+                contained_points.append([poly.id,point.id,point.name,point.objektart])
     return contained_points
 
     def calc_municipalities_poly_difference(municipalities, municipalities_only_vegetation_area):
