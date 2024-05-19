@@ -758,6 +758,9 @@ class Polygon_Data():
         res = []
         for i in range(len(self.cleaned_mun_polys)):
             diff_polygons = self.cleaned_mun_polys[i].difference(self.cleaned_mun_only_vegetation_polys[i])
+            for poly in diff_polygons:
+                poly.id = self.cleaned_mun_polys[i].id
+                poly.name = self.cleaned_mun_polys[i].name
             res.append(diff_polygons)
         return(res)
 
