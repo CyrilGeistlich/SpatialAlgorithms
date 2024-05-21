@@ -784,7 +784,14 @@ def process_json_file(json_files_data):
 
     return all_data
 
-def point_polygon_matching(point_list,polygon_list,):
+def point_polygon_matching(point_list,polygon_list):
+    """
+    Finds Points contained by a Polygon. Takes Lists.
+
+    Parameters:
+    Point List, Polygon List
+    """
+
     #Create empty List and define entry
     contained_points = []
     # iterate through points and polygons
