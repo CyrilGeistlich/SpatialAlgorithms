@@ -801,11 +801,11 @@ def point_polygon_matching(point_list,polygon_list):
                 contained_points.append([poly.id,point.id,point.name,point.objektart])
     return contained_points
 
-    def calc_municipalities_poly_difference(municipalities, municipalities_only_vegetation_area):
-        mun_ids = [obj.id for obj in data['Gemeinden_mit_Berge']]
+def calc_municipalities_poly_difference(municipalities, municipalities_only_vegetation_area):
+    mun_ids = [obj.id for obj in data['Gemeinden_mit_Berge']]
 
-        for id in mun_ids:
-            print(id)
+    for id in mun_ids:
+        print(id)
 
 
 if __name__ == "__main__":
