@@ -58,9 +58,6 @@ class Point():
         if side != 0:
             side = side/abs(side)  # will return 0 if collinear, -1 for left, 1 for right
         return side
-    
-    def set_polygon_id(self, polygon):
-        self.polygon_id = polygon.id
 
 
 ## POINTGROUPS CLASS ##
@@ -170,7 +167,7 @@ class Segment():
         d = other.end
         div = (a.x - b.x) * (c.y - d.y) - (a.y - b.y) * (c.x - d.x)
         if div == 0:
-            print("you fucked up in function -> intersection")
+            print("Lines are colinear")
             print(self)
             print(other)
             return f"doesn't work: {a}, {b},{c},{d} \n"  # Lines are parallel
@@ -235,16 +232,14 @@ class Polygon(PointGroup):
         self.name = name
         self.first = None
         self.id = id
+        
 
         if data:
             for i, d in enumerate(data):
                 #self.points.append(Point(d[xcol], d[ycol],name))
                 self.add(Vertex(d[xcol], d[ycol]))
             self.removeDuplicates()
-
-    @property
-    def bbox(self):
-        return Bbox(self)
+        self.bbox = Bbox(self)
 
     def __eq__(self, other): 
         if not isinstance(other, Polygon):
@@ -335,11 +330,6 @@ class Polygon(PointGroup):
         vertex.prev.next = next
         vertex.next.previous = previous
 
-    def pop_vertices(self): ## Only used to display
-        edge_ends = [i.end for i in self.edges()]
-        edge_ends.insert(0, self.first)
-        return edge_ends
-
     # test if polygon is closed: first and last point should be identical
     def isClosed(self):
         start = self.points[0]
@@ -406,19 +396,6 @@ class Polygon(PointGroup):
             return False           
         else:
             return (self, p)
-
-    def perturb(self, redo = False):
-        """Perturb the coordinates of the polygon by adding 0.001 to both X and Y coordinates.""" ## Needed because Grainer Horman algorithm doesn't work when two points are the same
-        if redo:
-            for point in self:
-                point.x -= 0.1
-                #point.y -= 0.1
-            self.perturbed = False
-        else:
-            for point in self:
-                point.x += 0.1
-                #point.y += 0.01
-            self.perturbed = True
 
     
     def clip(self, clip_polygon):
@@ -507,6 +484,7 @@ class Polygon(PointGroup):
                 current = current.link
 
                 if current.processed:
+                    clipped.bbox = Bbox(clipped)
                     result.append(clipped)
                     current = self.first.next_vertex(next_original=False, unprocessed=True)
                     break
@@ -547,6 +525,7 @@ class Polygon(PointGroup):
                 current = current.link
 
                 if current.processed:
+                    clipped.bbox = Bbox(clipped)
                     result.append(clipped)
                     current = self.first.next_vertex(next_original=False, unprocessed=True)
                     break
@@ -601,6 +580,7 @@ class Polygon(PointGroup):
                             break
 
                 if current.processed:
+                    clipped.bbox = Bbox(clipped)
                     result.append(clipped)
                     current = self.first.next_vertex(next_original=False, unprocessed=True)
                     break
@@ -612,6 +592,7 @@ class Polygon(PointGroup):
             
 
     def update_entry_exit(self, other):
+
         
         if other.containsPoint(self.first):
             status = "exit"
@@ -622,6 +603,7 @@ class Polygon(PointGroup):
                 vertex.entry_exit = status
                 if status == "entry": status = "exit"
                 else: status = "entry"
+   
     def edges(self):
         """Generate edges of the polygon."""
         start = self.first
@@ -660,22 +642,25 @@ class Bbox():
 
         if data is None or (hasattr(data, 'size') and data.size == 0):
             print("Warning: Empty data is not implemented")
-            
-        # for Segment objects 
-        if isinstance(data, Segment) == True:
-            x = [data.start.x, data.end.x]
-            y = [data.start.y, data.end.y]
-        
-        # for PointGroup objects (including Polygon)
-        else:      
-            x = [i.x for i in data]   # extract all x coords as a list
-            y = [i.y for i in data]   # extract all y coords as a list
+            x = None
+            y = None
 
-        # determine corners, calculate centre and area
-        self.ll = Point(min(x), min(y))    # lower-left corner (min x, min y)
-        self.ur = Point(max(x), max(y))    # upper-right corner (max x, max y)
-        self.ctr = Point((max(x)-min(x))/2, (max(y)-min(y))/2)   # centre of box
-        self.area = (abs(max(x)-min(x)))*abs((max(y)-min(y)))    # area of box
+        else:
+            # for Segment objects 
+            if isinstance(data, Segment) == True:
+                x = [data.start.x, data.end.x]
+                y = [data.start.y, data.end.y]
+            
+            # for PointGroup objects (including Polygon)
+            else:      
+                x = [i.x for i in data]   # extract all x coords as a list
+                y = [i.y for i in data]   # extract all y coords as a list
+
+            # determine corners, calculate centre and area
+            self.ll = Point(min(x), min(y))    # lower-left corner (min x, min y)
+            self.ur = Point(max(x), max(y))    # upper-right corner (max x, max y)
+            self.ctr = Point((max(x)-min(x))/2, (max(y)-min(y))/2)   # centre of box
+            self.area = (abs(max(x)-min(x)))*abs((max(y)-min(y)))    # area of box
            
     # representation
     def __repr__(self):
