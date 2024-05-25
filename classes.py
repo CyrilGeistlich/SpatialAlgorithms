@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from numpy import sqrt, radians, arcsin, sin, cos
 import json
 import folium
+from branca.colormap import linear
 
 ## DEFINE CLASSES HERE ##
 
@@ -232,7 +233,10 @@ class Polygon(PointGroup):
         self.name = name
         self.first = None
         self.id = id
-        
+        self.objektart = None
+        self.point_count = None
+        self.points_per_area = None
+        self.points_per_area_norm = None
 
         if data:
             for i, d in enumerate(data):
@@ -624,13 +628,6 @@ class Polygon(PointGroup):
         plt.plot(x, y, linestyle='dashed')
         plt.scatter(x, y)
 
-    def viz_interactive(self):
-        m = folium.Map(location=[0, 0], zoom_start=2)
-        for poly in self:
-            coords = poly.get_coordinates()
-            folium_polygon = folium.Polygon(locations=coords, color='red')
-            folium_polygon.add_to(m)
-        return m
 
 ## BBOX CLASS ##
 
@@ -739,6 +736,97 @@ class Polygon_Data():
                 poly.name = self.cleaned_mun_polys[i].name
             res.append(diff_polygons)
         return(res)
+
+    def join_csv(self, vegetation_data, mountain_data):
+        #create a dictionary from the data frame for quick lookup
+        df_dict_veg = {entry['polygon_id']: entry for entry in vegetation_data}
+        df_dict_mountain = {entry['polygon_id']: entry for entry in mountain_data}
+
+        #join the attributes from the dictionary to the municipality attributes
+        for polygon in self.raw_municipalities_polygons:
+            if polygon.id in df_dict_veg:
+                polygon.objektart = df_dict_veg[polygon.id]['objektart']
+                polygon.point_count = df_dict_veg[polygon.id]['point_count']
+
+        for polygon in self.raw_muns_only_vegetation_area_polygons:
+            if polygon.id in df_dict_mountain:
+                polygon.objektart = df_dict_mountain[polygon.id]['objektart']
+                polygon.point_count = df_dict_mountain[polygon.id]['point_count']
+
+        # normalize the count of the points in polygon with the area
+        self.normalize_point_count()
+
+    def normalize_point_count(self):
+        all_polygons = self.raw_municipalities_polygons + self.raw_muns_only_vegetation_area_polygons
+        for polygon in all_polygons:
+            if polygon.point_count is not None:
+                polygon.points_per_area = polygon.point_count / polygon.area()
+
+        max_points_per_area = max(
+            polygon.points_per_area for polygon in all_polygons if polygon.points_per_area is not None)
+        min_points_per_area = min(
+            polygon.points_per_area for polygon in all_polygons if polygon.points_per_area is not None)
+
+        for polygon in all_polygons:
+            if polygon.points_per_area is not None:
+                polygon.points_per_area_norm = (polygon.points_per_area - min_points_per_area) / (
+                            max_points_per_area - min_points_per_area)
+
+    def viz_type(self):
+        m = folium.Map(location=[0, 0], zoom_start=2)
+        colormap_mun = linear.YlOrRd.scale(0, 1)
+        colormap_veg = linear.YlGnBu.scale(0, 1)
+
+        #visualize the municipality polygons with a red color scheme
+        for dataset in [self.raw_municipalities_polygons]:
+            for poly in dataset:
+                coords = poly.get_coordinates()
+                color = colormap_mun(poly.points_per_area_norm) if poly.points_per_area_norm is not None else 'gray'
+                folium_polygon = folium.Polygon(
+                    locations=coords,
+                    color=color,
+                    fill=True,
+                    fill_color=color,
+                    fill_opacity=0.7,
+                    popup=(
+                        f'ID: {poly.id}<br>'
+                        f'Name: {poly.name}<br>'
+                        f'Objektart: {poly.objektart}<br>'
+                        f'Absolute Point Count: {poly.point_count}<br>'
+                        f'Points per Area: {poly.points_per_area}<br>'
+                        f'Area: {poly.area()}'
+                    )
+                )
+                folium_polygon.add_to(m)
+
+        #visualize the vegetation polygons with a blue color scheme
+        for dataset in [self.raw_muns_only_vegetation_area_polygons]:
+            for poly in dataset:
+                coords = poly.get_coordinates()
+                color = colormap_veg(poly.points_per_area_norm) if poly.points_per_area_norm is not None else 'gray'
+                folium_polygon = folium.Polygon(
+                    locations=coords,
+                    color=color,
+                    fill=True,
+                    fill_color=color,
+                    fill_opacity=0.7,
+                    popup=(
+                        f'ID: {poly.id}<br>'
+                        f'Name: {poly.name}<br>'
+                        f'Objektart: {poly.objektart}<br>'
+                        f'Absolute Point Count: {poly.point_count}<br>'
+                        f'Points per Area: {poly.points_per_area}<br>'
+                        f'Area: {poly.area()}'
+                    )
+                )
+                folium_polygon.add_to(m)
+
+        colormap_veg.add_to(m)
+        colormap_mun.add_to(m)
+        return m
+
+    def viz_class(self):
+        return "Has to be implemented"
 
 
 def process_json_file(json_files_data):
