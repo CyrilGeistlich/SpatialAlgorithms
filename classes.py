@@ -737,21 +737,20 @@ class Polygon_Data():
             res.append(diff_polygons)
         return(res)
 
-    def join_csv(self, vegetation_data, mountain_data):
+    def join_csv(self, dataframe_data):
         #create a dictionary from the data frame for quick lookup
-        df_dict_veg = {entry['polygon_id']: entry for entry in vegetation_data}
-        df_dict_mountain = {entry['polygon_id']: entry for entry in mountain_data}
+        df_dict = {entry['polygon_id']: entry for entry in dataframe_data}
 
         #join the attributes from the dictionary to the municipality attributes
         for polygon in self.raw_municipalities_polygons:
-            if polygon.id in df_dict_veg:
-                polygon.objektart = df_dict_veg[polygon.id]['objektart']
-                polygon.point_count = df_dict_veg[polygon.id]['point_count']
+            if polygon.id in df_dict:
+                polygon.objektart = df_dict[polygon.id]['objektart']
+                polygon.point_count = df_dict[polygon.id]['point_count']
 
         for polygon in self.raw_muns_only_vegetation_area_polygons:
-            if polygon.id in df_dict_mountain:
-                polygon.objektart = df_dict_mountain[polygon.id]['objektart']
-                polygon.point_count = df_dict_mountain[polygon.id]['point_count']
+            if polygon.id in df_dict:
+                polygon.objektart = df_dict[polygon.id]['objektart']
+                polygon.point_count = df_dict[polygon.id]['point_count']
 
         # normalize the count of the points in polygon with the area
         self.normalize_point_count()
