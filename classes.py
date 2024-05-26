@@ -649,7 +649,6 @@ class Bbox():
     # using built-in `isinstance` to test what class has been used to initialise the object   
 
         if data is None or (hasattr(data, 'size') and data.size == 0):
-            print("Warning: Empty data is not implemented")
             x = None
             y = None
 
@@ -756,7 +755,8 @@ class Polygon_Data():
         #extract the IDs from the different polygon lists
         ids_full = {obj.id for obj in self.cleaned_mun_polys}
         ids_veg = {obj.id for obj in self.cleaned_mun_only_vegetation_polys}
-        ids_mun = {obj.id for obj in self.cleaned_mun_only_mountains_polys}
+        #ids_mun = {obj.id for obj in self.cleaned_mun_only_mountains_polys}
+        ids_mun = self.extract_ids(self.cleaned_mun_only_mountains_polys)
 
         #join the attributes from the dictionary to the polygon attributes
         for entry in df_full:
@@ -811,6 +811,18 @@ class Polygon_Data():
 
         # normalize the count of the points in polygon with the area
         self.normalize_point_count()
+
+    def extract_ids(self, data):
+        ids = []  # List to store the ids
+        for item in data:
+            if isinstance(item, list):
+                # If the item is a list, recursively call extract_ids
+                ids.extend(self.extract_ids(item))
+            else:
+                # Assume the item is an object with an 'id' attribute
+                # Safely get the attribute with getattr in case it's missing
+                ids.append(getattr(item, 'id', None))
+        return ids
 
     def normalize_point_count(self):
         all_polygons = self.cleaned_mun_polys + self.cleaned_mun_only_vegetation_polys + self.cleaned_mun_only_mountains_polys
