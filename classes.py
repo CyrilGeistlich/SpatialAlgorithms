@@ -239,13 +239,13 @@ class Polygon(PointGroup):
         self.name = name
         self.first = None
         self.id = id
-        self.bergname = None
+        self.bergname = 0 ## sonst funktioniert += point_count nicht
         self.bergname_per_area = None
         self.bergname_per_area_norm = None
-        self.flurname = None
+        self.flurname = 0
         self.flurname_per_area = None
         self.flurname_per_area_norm = None
-        self.total = None
+        self.total = 0
         self.total_per_area = None
         self.total_per_area_norm = None
 
@@ -759,7 +759,7 @@ class Polygon_Data():
         ids_mun = self.extract_ids(self.cleaned_mun_only_mountains_polys)
 
         #join the attributes from the dictionary to the polygon attributes
-        for entry in df_full:
+        for index, entry in df_full.iterrows():
             polygon_id = entry["polygon_id"]
             objektart = entry["objektart"]
             point_count = entry["point_count"]
@@ -776,7 +776,7 @@ class Polygon_Data():
                     polygon.flurname += point_count
 
         #for the vegetation polygons only
-        for entry in df_veg:
+        for index, entry in df_veg.iterrows():
             polygon_id = entry["polygon_id"]
             objektart = entry["objektart"]
             point_count = entry["point_count"]
@@ -793,7 +793,7 @@ class Polygon_Data():
                     polygon.flurname += point_count
 
         #for the montains polygons only
-        for entry in df_mountains:
+        for index, entry in df_mountains.iterrows():
             polygon_id = entry["polygon_id"]
             objektart = entry["objektart"]
             point_count = entry["point_count"]
