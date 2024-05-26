@@ -744,7 +744,7 @@ class Polygon_Data():
                 poly.name = self.cleaned_mun_polys[i].name
             res.append(diff_polygons)
         self.cleaned_mun_only_mountains_polys = res
-        return(res)
+        return res
 
     def join_csv(self, df_full, df_veg, df_mountains):
         #extract the IDs from the different polygon lists
