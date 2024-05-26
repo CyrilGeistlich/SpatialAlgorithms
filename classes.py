@@ -5,6 +5,12 @@ from numpy import sqrt, radians, arcsin, sin, cos
 import json
 import folium
 from branca.colormap import linear
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.patches import Polygon as mplPolygon
+from matplotlib.collections import PatchCollection
+from matplotlib.colors import Normalize
+import matplotlib.cm as cm
 
 ## DEFINE CLASSES HERE ##
 
@@ -832,61 +838,80 @@ class Polygon_Data():
                 polygon.flurname_per_area_norm = (polygon.flurname_per_area - min_points_per_area) / (
                             max_points_per_area - min_points_per_area)
 
-    def viz_type(self):
-        m = folium.Map(location=[0, 0], zoom_start=2) #ggplot
-        colormap_mun = linear.YlOrRd.scale(0, 1)
-        colormap_veg = linear.YlGnBu.scale(0, 1)
+    def plot_poly_both(self):
+        fig, ax = plt.subplots()
 
-        #visualize the municipality polygons with a red color scheme
-        for dataset in [self.raw_municipalities_polygons]:
-            for poly in dataset:
-                coords = poly.get_coordinates()
-                color = colormap_mun(poly.points_per_area_norm) if poly.points_per_area_norm is not None else 'gray'
-                folium_polygon = folium.Polygon(
-                    locations=coords,
-                    color=color,
-                    fill=True,
-                    fill_color=color,
-                    fill_opacity=0.7,
-                    popup=(
-                        f'ID: {poly.id}<br>'
-                        f'Name: {poly.name}<br>'
-                        f'Objektart: {poly.objektart}<br>'
-                        f'Absolute Point Count: {poly.point_count}<br>'
-                        f'Points per Area: {poly.points_per_area}<br>'
-                        f'Area: {poly.area()}'
-                    )
-                )
-                folium_polygon.add_to(m)
+        patches1 = []
+        colors1 = []
+        for polygon in self.cleaned_mun_only_mountains_polys:
+            poly = mplPolygon(polygon.points, closed=True)
+            patches1.append(poly)
+            colors1.append(polygon.total_per_area_norm)
 
-        #visualize the vegetation polygons with a blue color scheme
-        for dataset in [self.raw_muns_only_vegetation_area_polygons]:
-            for poly in dataset:
-                coords = poly.get_coordinates()
-                color = colormap_veg(poly.points_per_area_norm) if poly.points_per_area_norm is not None else 'gray'
-                folium_polygon = folium.Polygon(
-                    locations=coords,
-                    color=color,
-                    fill=True,
-                    fill_color=color,
-                    fill_opacity=0.7,
-                    popup=(
-                        f'ID: {poly.id}<br>'
-                        f'Name: {poly.name}<br>'
-                        f'Objektart: {poly.objektart}<br>'
-                        f'Absolute Point Count: {poly.point_count}<br>'
-                        f'Points per Area: {poly.points_per_area}<br>'
-                        f'Area: {poly.area()}'
-                    )
-                )
-                folium_polygon.add_to(m)
+        patches2 = []
+        colors2 = []
+        for polygon in self.cleaned_mun_only_vegetation_polys:
+            poly = mplPolygon(polygon.points, closed=True)
+            patches2.append(poly)
+            colors2.append(polygon.total_per_area_norm)
 
-        colormap_veg.add_to(m)
-        colormap_mun.add_to(m)
-        return m
+        p1 = PatchCollection(patches1, cmap='OrRd')
+        p1.set_array(np.array(colors1))
 
-    def viz_class(self):
-        return "Has to be implemented"
+        p2 = PatchCollection(patches2, cmap='Blues')
+        p2.set_array(np.array(colors2))
+
+        ax.add_collection(p1)
+        ax.add_collection(p2)
+        plt.colorbar(p1, ax=ax, label='Mountain Areas')
+        plt.colorbar(p2, ax=ax, label='Vegetation Areas', orientation='horizontal')
+
+        ax.set_xlim(-10, 60)
+        ax.set_ylim(-10, 60)
+        ax.set_aspect('equal', adjustable='box')
+        plt.show()
+
+    def plot_obj_berg(self):
+        fig, ax = plt.subplots()
+
+        patches = []
+        colors = []
+        for polygon in self.cleaned_mun_polys:
+            poly = mplPolygon(polygon.points, closed=True)
+            patches.append(poly)
+            colors.append(polygon.bergname_per_area_norm)
+
+        p = PatchCollection(patches, cmap='OrRd')
+        p.set_array(np.array(colors))
+
+        ax.add_collection(p)
+        plt.colorbar(p, ax=ax, label='Bergname Counts')
+
+        ax.set_xlim(-10, 60)
+        ax.set_ylim(-10, 60)
+        ax.set_aspect('equal', adjustable='box')
+        plt.show()
+
+    def plot_obj_flur(self):
+        fig, ax = plt.subplots()
+
+        patches = []
+        colors = []
+        for polygon in self.cleaned_mun_polys:
+            poly = mplPolygon(polygon.points, closed=True)
+            patches.append(poly)
+            colors.append(polygon.flurname_per_area_norm)
+
+        p = PatchCollection(patches, cmap='Blues')
+        p.set_array(np.array(colors))
+
+        ax.add_collection(p)
+        plt.colorbar(p, ax=ax, label='Flurname Counts')
+
+        ax.set_xlim(-10, 60)
+        ax.set_ylim(-10, 60)
+        ax.set_aspect('equal', adjustable='box')
+        plt.show()
 
 
 def process_json_file(json_files_data):
