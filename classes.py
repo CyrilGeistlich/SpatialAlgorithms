@@ -233,10 +233,15 @@ class Polygon(PointGroup):
         self.name = name
         self.first = None
         self.id = id
-        self.objektart = None
-        self.point_count = None
-        self.points_per_area = None
-        self.points_per_area_norm = None
+        self.bergname = None
+        self.bergname_per_area = None
+        self.bergname_per_area_norm = None
+        self.flurname = None
+        self.flurname_per_area = None
+        self.flurname_per_area_norm = None
+        self.total = None
+        self.total_per_area = None
+        self.total_per_area_norm = None
 
         if data:
             for i, d in enumerate(data):
@@ -693,6 +698,9 @@ class Polygon_Data():
     def __init__(self, municipalities_polygons, muns_only_vegetation_area_polygons):
         self.raw_municipalities_polygons = municipalities_polygons
         self.raw_muns_only_vegetation_area_polygons = muns_only_vegetation_area_polygons
+        self.cleaned_mun_polys = None
+        self.cleaned_mun_only_vegetation_polys = None
+        self.cleaned_mun_only_mountains_polys = None
 
 
     def remove_unique_entries(self):
@@ -735,44 +743,97 @@ class Polygon_Data():
                 poly.id = self.cleaned_mun_polys[i].id
                 poly.name = self.cleaned_mun_polys[i].name
             res.append(diff_polygons)
+        self.cleaned_mun_only_mountains_polys = res
         return(res)
 
-    def join_csv(self, dataframe_data):
-        #create a dictionary from the data frame for quick lookup
-        df_dict = {entry['polygon_id']: entry for entry in dataframe_data}
+    def join_csv(self, df_full, df_veg, df_mountains):
+        #extract the IDs from the different polygon lists
+        ids_full = {obj.id for obj in self.cleaned_mun_polys}
+        ids_veg = {obj.id for obj in self.cleaned_mun_only_vegetation_polys}
+        ids_mun = {obj.id for obj in self.cleaned_mun_only_mountains_polys}
 
-        #join the attributes from the dictionary to the municipality attributes
-        for polygon in self.raw_municipalities_polygons:
-            if polygon.id in df_dict:
-                polygon.objektart = df_dict[polygon.id]['objektart']
-                polygon.point_count = df_dict[polygon.id]['point_count']
+        #join the attributes from the dictionary to the polygon attributes
+        for entry in df_full:
+            polygon_id = entry["polygon_id"]
+            objektart = entry["objektart"]
+            point_count = entry["point_count"]
 
-        for polygon in self.raw_muns_only_vegetation_area_polygons:
-            if polygon.id in df_dict:
-                polygon.objektart = df_dict[polygon.id]['objektart']
-                polygon.point_count = df_dict[polygon.id]['point_count']
+            #check if ID is in the polygon lost
+            if polygon_id in ids_full:
+                polygon = self.cleaned_mun_polys[polygon_id]
+                #add counts to polygon attributes
+                polygon.total += point_count
+
+                if objektart == "Bergname":
+                    polygon.bergname += point_count
+                elif objektart == "Flurname":
+                    polygon.flurname += point_count
+
+        #for the vegetation polygons only
+        for entry in df_veg:
+            polygon_id = entry["polygon_id"]
+            objektart = entry["objektart"]
+            point_count = entry["point_count"]
+
+            # check if ID is in the polygon lost
+            if polygon_id in ids_veg:
+                polygon = self.cleaned_mun_polys[polygon_id]
+                # add counts to polygon attributes
+                polygon.total += point_count
+
+                if objektart == "Bergname":
+                    polygon.bergname += point_count
+                elif objektart == "Flurname":
+                    polygon.flurname += point_count
+
+        #for the montains polygons only
+        for entry in df_mountains:
+            polygon_id = entry["polygon_id"]
+            objektart = entry["objektart"]
+            point_count = entry["point_count"]
+
+            # check if ID is in the polygon lost
+            if polygon_id in ids_mun:
+                polygon = self.cleaned_mun_polys[polygon_id]
+                # add counts to polygon attributes
+                polygon.total += point_count
+
+                if objektart == "Bergname":
+                    polygon.bergname += point_count
+                elif objektart == "Flurname":
+                    polygon.flurname += point_count
 
         # normalize the count of the points in polygon with the area
         self.normalize_point_count()
 
     def normalize_point_count(self):
-        all_polygons = self.raw_municipalities_polygons + self.raw_muns_only_vegetation_area_polygons
+        all_polygons = self.cleaned_mun_polys + self.cleaned_mun_only_vegetation_polys + self.cleaned_mun_only_mountains_polys
         for polygon in all_polygons:
-            if polygon.point_count is not None:
-                polygon.points_per_area = polygon.point_count / polygon.area()
+            if polygon.total is not None:
+                polygon.total_per_area = polygon.total / polygon.area()
+            elif polygon.bergname is not None:
+                polygon.bergname_per_area = polygon.bergname / polygon.area()
+            elif polygon.flurname is not None:
+                polygon.flurname_per_area = polygon.flurname / polygon.area()
 
         max_points_per_area = max(
-            polygon.points_per_area for polygon in all_polygons if polygon.points_per_area is not None)
+            polygon.total_per_area for polygon in all_polygons if polygon.total_per_area is not None)
         min_points_per_area = min(
-            polygon.points_per_area for polygon in all_polygons if polygon.points_per_area is not None)
+            polygon.total_per_area for polygon in all_polygons if polygon.total_per_area is not None)
 
         for polygon in all_polygons:
-            if polygon.points_per_area is not None:
-                polygon.points_per_area_norm = (polygon.points_per_area - min_points_per_area) / (
+            if polygon.total_per_area is not None:
+                polygon.total_per_area_norm = (polygon.total_per_area - min_points_per_area) / (
+                            max_points_per_area - min_points_per_area)
+            if polygon.bergname_per_area is not None:
+                polygon.bergname_per_area_norm = (polygon.bergname_per_area - min_points_per_area) / (
+                            max_points_per_area - min_points_per_area)
+            if polygon.flurname_per_area is not None:
+                polygon.flurname_per_area_norm = (polygon.flurname_per_area - min_points_per_area) / (
                             max_points_per_area - min_points_per_area)
 
     def viz_type(self):
-        m = folium.Map(location=[0, 0], zoom_start=2)
+        m = folium.Map(location=[0, 0], zoom_start=2) #ggplot
         colormap_mun = linear.YlOrRd.scale(0, 1)
         colormap_veg = linear.YlGnBu.scale(0, 1)
 
