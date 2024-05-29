@@ -808,7 +808,16 @@ class Polygon_Data():
                     polygon.flurname += point_count
 
         # normalize the count of the points in polygon with the area
-        self.normalize_point_count()
+        all_polygons = self.cleaned_mun_polys + self.cleaned_mun_only_vegetation_polys + self.cleaned_mun_only_mountains_polys
+        self.normalize_per_area(all_polygons)
+
+        # calculate the maximum and minimum number of points
+        max_points_per_area = max(
+            polygon.total_per_area for polygon in all_polygons if polygon.total_per_area is not None)
+        min_points_per_area = min(
+            polygon.total_per_area for polygon in all_polygons if polygon.total_per_area is not None)
+
+        self.normalize_total(all_polygons, max_points_per_area, min_points_per_area)
 
     def extract_ids(self, data):
         id_dict = {}  # Dictionary to store the ids and corresponding items
@@ -823,31 +832,36 @@ class Polygon_Data():
                     id_dict[item_id] = item
         return id_dict
 
-    def normalize_point_count(self):
-        all_polygons = self.cleaned_mun_polys + self.cleaned_mun_only_vegetation_polys + self.cleaned_mun_only_mountains_polys
-        for polygon in all_polygons:
-            if polygon.total is not None:
-                polygon.total_per_area = polygon.total / polygon.area()
-            elif polygon.bergname is not None:
-                polygon.bergname_per_area = polygon.bergname / polygon.area()
-            elif polygon.flurname is not None:
-                polygon.flurname_per_area = polygon.flurname / polygon.area()
+    def normalize_per_area(self, data):
+        for polygon in data:
+            print(polygon)
+            if isinstance(polygon, list):
+                # If the item is a list, recursively call extract_ids
+                polygon.extend(self.normalize_per_area(polygon))
+            else:
+                # Assume the item is an object. then normalize over the polygon area
+                if polygon.total is not None:
+                    polygon.total_per_area = polygon.total / polygon.area()
+                elif polygon.bergname is not None:
+                    polygon.bergname_per_area = polygon.bergname / polygon.area()
+                elif polygon.flurname is not None:
+                    polygon.flurname_per_area = polygon.flurname / polygon.area()
 
-        max_points_per_area = max(
-            polygon.total_per_area for polygon in all_polygons if polygon.total_per_area is not None)
-        min_points_per_area = min(
-            polygon.total_per_area for polygon in all_polygons if polygon.total_per_area is not None)
-
-        for polygon in all_polygons:
-            if polygon.total_per_area is not None:
-                polygon.total_per_area_norm = (polygon.total_per_area - min_points_per_area) / (
-                            max_points_per_area - min_points_per_area)
-            if polygon.bergname_per_area is not None:
-                polygon.bergname_per_area_norm = (polygon.bergname_per_area - min_points_per_area) / (
-                            max_points_per_area - min_points_per_area)
-            if polygon.flurname_per_area is not None:
-                polygon.flurname_per_area_norm = (polygon.flurname_per_area - min_points_per_area) / (
-                            max_points_per_area - min_points_per_area)
+    def normalize_total(self, data, max_count, min_count):
+        for polygon in data:
+            if isinstance(polygon, list):
+                # If the item is a list, recursively call extract_ids
+                polygon.extend(self.normalize_total(polygon, max_count, min_count))
+            else:
+                if polygon.total_per_area is not None:
+                    polygon.total_per_area_norm = (polygon.total_per_area - min_count) / (
+                                max_count - min_count)
+                elif polygon.bergname_per_area is not None:
+                    polygon.bergname_per_area_norm = (polygon.bergname_per_area - min_count) / (
+                                max_count - min_count)
+                elif polygon.flurname_per_area is not None:
+                    polygon.flurname_per_area_norm = (polygon.flurname_per_area - min_count) / (
+                                max_count- min_count)
 
     def plot_poly_both(self):
         fig, ax = plt.subplots()
@@ -855,9 +869,13 @@ class Polygon_Data():
         patches1 = []
         colors1 = []
         for polygon in self.cleaned_mun_only_mountains_polys:
-            poly = mplPolygon(polygon.points, closed=True)
-            patches1.append(poly)
-            colors1.append(polygon.total_per_area_norm)
+            if isinstance(polygon, list):
+                # If the item is a list, recursively call extract_ids
+                polygon.extend(self.plot_poly_both(polygon))
+            else:
+                poly = mplPolygon(polygon.points, closed=True)
+                patches1.append(poly)
+                colors1.append(polygon.total_per_area_norm)
 
         patches2 = []
         colors2 = []
