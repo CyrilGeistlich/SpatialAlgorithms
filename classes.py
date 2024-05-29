@@ -393,7 +393,7 @@ class Polygon(PointGroup):
         if (self.bbox.containsPoint(p) == False):
             return False
         
-        # Solution, as discussed in lecture, added here
+        # Create Ray
         ray = Segment(p, Point(self.bbox.ur.x+1, p.y))
         count = 0
         
@@ -402,11 +402,10 @@ class Polygon(PointGroup):
             end = self[i+1]
             s = Segment(start, end)
             if s.intersects(ray):
+                # Handling the special case where the point lies exactly on a vertex
                 if (p.y != min(start.y, end.y)):
                     count = count + 1
-
-        #print(f'count: {count}')
-        #print(p)
+                    
         if (count%2 == 0):
             return False           
         else:
