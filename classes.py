@@ -753,9 +753,8 @@ class Polygon_Data():
 
     def join_csv(self, df_full, df_veg, df_mountains):
         #extract the IDs from the different polygon lists
-        ids_full = {obj.id for obj in self.cleaned_mun_polys}
-        ids_veg = {obj.id for obj in self.cleaned_mun_only_vegetation_polys}
-        #ids_mun = {obj.id for obj in self.cleaned_mun_only_mountains_polys}
+        ids_full = {obj.id: obj for obj in self.cleaned_mun_polys}
+        ids_veg = {obj.id: obj for obj in self.cleaned_mun_only_vegetation_polys}
         ids_mun = self.extract_ids(self.cleaned_mun_only_mountains_polys)
 
         #join the attributes from the dictionary to the polygon attributes
@@ -764,9 +763,9 @@ class Polygon_Data():
             objektart = entry["objektart"]
             point_count = entry["point_count"]
 
-            #check if ID is in the polygon lost
+            #check if ID is in the polygon
             if polygon_id in ids_full:
-                polygon = self.cleaned_mun_polys[polygon_id]
+                polygon = ids_full[polygon_id]
                 #add counts to polygon attributes
                 polygon.total += point_count
 
@@ -783,7 +782,7 @@ class Polygon_Data():
 
             # check if ID is in the polygon lost
             if polygon_id in ids_veg:
-                polygon = self.cleaned_mun_polys[polygon_id]
+                polygon = ids_veg[polygon_id]
                 # add counts to polygon attributes
                 polygon.total += point_count
 
@@ -800,7 +799,7 @@ class Polygon_Data():
 
             # check if ID is in the polygon lost
             if polygon_id in ids_mun:
-                polygon = self.cleaned_mun_polys[polygon_id]
+                polygon = ids_mun[polygon_id]
                 # add counts to polygon attributes
                 polygon.total += point_count
 
@@ -813,16 +812,17 @@ class Polygon_Data():
         self.normalize_point_count()
 
     def extract_ids(self, data):
-        ids = []  # List to store the ids
+        id_dict = {}  # Dictionary to store the ids and corresponding items
         for item in data:
             if isinstance(item, list):
                 # If the item is a list, recursively call extract_ids
-                ids.extend(self.extract_ids(item))
+                id_dict.update(self.extract_ids(item))
             else:
                 # Assume the item is an object with an 'id' attribute
-                # Safely get the attribute with getattr in case it's missing
-                ids.append(getattr(item, 'id', None))
-        return ids
+                item_id = getattr(item, 'id', None)
+                if item_id is not None:
+                    id_dict[item_id] = item
+        return id_dict
 
     def normalize_point_count(self):
         all_polygons = self.cleaned_mun_polys + self.cleaned_mun_only_vegetation_polys + self.cleaned_mun_only_mountains_polys
