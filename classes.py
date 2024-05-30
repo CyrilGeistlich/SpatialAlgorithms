@@ -769,7 +769,7 @@ class Polygon_Data():
         return res
 
     def join_csv(self, df_full, df_veg, df_mountains):
-        #extract the IDs from the different polygon lists
+        #extract the IDs from the different polygon lists and store them in a dictionary
         ids_full = {obj.id: obj for obj in self.cleaned_mun_polys}
         ids_veg = {obj.id: obj for obj in self.cleaned_mun_only_vegetation_polys}
         ids_mun = self.extract_ids(self.cleaned_mun_only_mountains_polys)
@@ -788,7 +788,7 @@ class Polygon_Data():
 
                 if objektart == "Bergname":
                     polygon.bergname += point_count
-                elif objektart == "Flurname":
+                else:
                     polygon.flurname += point_count
 
         #for the vegetation polygons only
@@ -805,7 +805,7 @@ class Polygon_Data():
 
                 if objektart == "Bergname":
                     polygon.bergname += point_count
-                elif objektart == "Flurname":
+                else:
                     polygon.flurname += point_count
 
         #for the montains polygons only
@@ -822,7 +822,7 @@ class Polygon_Data():
 
                 if objektart == "Bergname":
                     polygon.bergname += point_count
-                elif objektart == "Flurname":
+                else:
                     polygon.flurname += point_count
 
         # normalize the count of the points in polygon with the area
@@ -866,22 +866,6 @@ class Polygon_Data():
                     polygon.flurname_per_area = polygon.flurname / polygon.area()
         return polygon
 
-    def normalize_total(self, data, max_count, min_count):
-        for polygon in data:
-            if isinstance(polygon, list):
-                # If the item is a list, recursively call extract_ids
-                polygon.extend(self.normalize_total(polygon, max_count, min_count))
-            else:
-                if polygon.total_per_area is not None:
-                    polygon.total_per_area_norm = (polygon.total_per_area - min_count) / (
-                                max_count - min_count)
-                elif polygon.bergname_per_area is not None:
-                    polygon.bergname_per_area_norm = (polygon.bergname_per_area - min_count) / (
-                                max_count - min_count)
-                elif polygon.flurname_per_area is not None:
-                    polygon.flurname_per_area_norm = (polygon.flurname_per_area - min_count) / (
-                                max_count- min_count)
-
     def plot_poly_both(self):
         fig, ax = plt.subplots()
 
@@ -920,14 +904,10 @@ class Polygon_Data():
         plt.show()
 
     def plot_obj_berg(self):
-        vertices = []
-        for p in self.cleaned_mun_polys:
-            for vert in p:
-                vertices.append(vert)
 
         gdf = gpd.GeoDataFrame({
             'geometry': [ShapelyPolygon(polygon.get_coordinates()) for polygon in self.cleaned_mun_polys],
-            'bergname': [polygon.bergname for polygon in self.cleaned_mun_polys]
+            'bergname': [p.bergname for p in self.cleaned_mun_polys]
         })
         fig, ax = plt.subplots()
         gdf.plot(column='bergname', ax=ax, legend=True, cmap='Reds')
@@ -935,17 +915,13 @@ class Polygon_Data():
         plt.show()
 
     def plot_obj_flur(self):
-        vertices = []
-        for p in self.cleaned_mun_polys:
-            for vert in p:
-                vertices.append(vert)
 
         gdf = gpd.GeoDataFrame({
             'geometry': [ShapelyPolygon(polygon.get_coordinates()) for polygon in self.cleaned_mun_polys],
-            'flurname': [polygon.flurname for polygon in self.cleaned_mun_polys]
+            'flurname': [p.flurname for p in self.cleaned_mun_polys]
         })
         fig, ax = plt.subplots()
-        gdf.plot(column='flurname', ax=ax, legend=True, cmap='Reds')
+        gdf.plot(column='flurname', ax=ax, legend=True, cmap='Blues')
 
         plt.show()
 
