@@ -7,8 +7,9 @@ import folium
 from branca.colormap import linear
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.patches import Polygon as mplPolygon
-from matplotlib.collections import PatchCollection
+import matplotlib.pyplot as plt
+import geopandas as gpd
+from shapely.geometry import Polygon, Point
 from matplotlib.colors import Normalize
 import matplotlib.cm as cm
 
@@ -638,6 +639,23 @@ class Polygon(PointGroup):
         plt.plot(x, y, linestyle='dashed')
         plt.scatter(x, y)
 
+    def to_array(self):
+        if not self.first:
+            return np.array([])  # Return empty array if no vertices
+
+        coords = []
+        current = self.first
+
+        while True:
+            coords.append([current.x, current.y])
+            current = current.next
+            if current == self.first:
+                break
+
+        return np.array(coords)
+
+    def get_coordinates(self):
+        return [(vertex.x, vertex.y) for vertex in self]
 
 ## BBOX CLASS ##
 
@@ -808,16 +826,17 @@ class Polygon_Data():
                     polygon.flurname += point_count
 
         # normalize the count of the points in polygon with the area
-        all_polygons = self.cleaned_mun_polys + self.cleaned_mun_only_vegetation_polys + self.cleaned_mun_only_mountains_polys
-        self.normalize_per_area(all_polygons)
+        #self.normalize_per_area(self.cleaned_mun_polys)
+        #self.normalize_per_area(self.cleaned_mun_only_vegetation_polys)
+        #self.normalize_per_area(self.cleaned_mun_only_mountains_polys)
 
         # calculate the maximum and minimum number of points
-        max_points_per_area = max(
-            polygon.total_per_area for polygon in all_polygons if polygon.total_per_area is not None)
-        min_points_per_area = min(
-            polygon.total_per_area for polygon in all_polygons if polygon.total_per_area is not None)
+        #max_points_per_area = max(
+        #    polygon.total_per_area for polygon in all_polygons if polygon.total_per_area is not None)
+        #min_points_per_area = min(
+        #    polygon.total_per_area for polygon in all_polygons if polygon.total_per_area is not None)
 
-        self.normalize_total(all_polygons, max_points_per_area, min_points_per_area)
+        #self.normalize_total(all_polygons, max_points_per_area, min_points_per_area)
 
     def extract_ids(self, data):
         id_dict = {}  # Dictionary to store the ids and corresponding items
@@ -834,18 +853,18 @@ class Polygon_Data():
 
     def normalize_per_area(self, data):
         for polygon in data:
-            print(polygon)
             if isinstance(polygon, list):
                 # If the item is a list, recursively call extract_ids
                 polygon.extend(self.normalize_per_area(polygon))
             else:
                 # Assume the item is an object. then normalize over the polygon area
-                if polygon.total is not None:
+                if polygon.total is not None and polygon.area != 0:
                     polygon.total_per_area = polygon.total / polygon.area()
-                elif polygon.bergname is not None:
+                elif polygon.bergname is not None and polygon.area != 0:
                     polygon.bergname_per_area = polygon.bergname / polygon.area()
-                elif polygon.flurname is not None:
+                elif polygon.flurname is not None and polygon.area != 0:
                     polygon.flurname_per_area = polygon.flurname / polygon.area()
+        return polygon
 
     def normalize_total(self, data, max_count, min_count):
         for polygon in data:
@@ -901,24 +920,24 @@ class Polygon_Data():
         plt.show()
 
     def plot_obj_berg(self):
+        vertices = []
+        for p in self.cleaned_mun_polys:
+            for vert in p:
+                vertices.append(vert)
+
+        gdf = gpd.GeoDataFrame({
+            'geometry': [Polygon(polygon.get_coordinates()) for polygon in self.cleaned_mun_polys],
+            'bergname': [polygon.bergname for polygon in self.cleaned_mun_polys]
+        })
+
         fig, ax = plt.subplots()
+        gdf.plot(column='bergname', ax=ax, legend=True, cmap='viridis')
 
-        patches = []
-        colors = []
+        # Iterate over the polygons and print their coordinates
         for polygon in self.cleaned_mun_polys:
-            poly = mplPolygon(polygon.points, closed=True)
-            patches.append(poly)
-            colors.append(polygon.bergname_per_area_norm)
+            coords = polygon.get_coordinates()
+            print(f'Polygon with total {polygon.bergname}: {coords}')
 
-        p = PatchCollection(patches, cmap='OrRd')
-        p.set_array(np.array(colors))
-
-        ax.add_collection(p)
-        plt.colorbar(p, ax=ax, label='Bergname Counts')
-
-        ax.set_xlim(-10, 60)
-        ax.set_ylim(-10, 60)
-        ax.set_aspect('equal', adjustable='box')
         plt.show()
 
     def plot_obj_flur(self):
@@ -927,7 +946,7 @@ class Polygon_Data():
         patches = []
         colors = []
         for polygon in self.cleaned_mun_polys:
-            poly = mplPolygon(polygon.points, closed=True)
+            poly = mplPolygon(polygon.to_array(), closed=True)
             patches.append(poly)
             colors.append(polygon.flurname_per_area_norm)
 
