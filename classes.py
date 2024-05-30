@@ -929,14 +929,8 @@ class Polygon_Data():
             'geometry': [ShapelyPolygon(polygon.get_coordinates()) for polygon in self.cleaned_mun_polys],
             'bergname': [polygon.bergname for polygon in self.cleaned_mun_polys]
         })
-
         fig, ax = plt.subplots()
         gdf.plot(column='bergname', ax=ax, legend=True, cmap='Reds')
-
-        # Iterate over the polygons and print their coordinates
-        for polygon in self.cleaned_mun_polys:
-            coords = polygon.get_coordinates()
-            print(f'Polygon with total {polygon.bergname}: {coords}')
 
         plt.show()
 
@@ -950,14 +944,8 @@ class Polygon_Data():
             'geometry': [ShapelyPolygon(polygon.get_coordinates()) for polygon in self.cleaned_mun_polys],
             'flurname': [polygon.flurname for polygon in self.cleaned_mun_polys]
         })
-
         fig, ax = plt.subplots()
         gdf.plot(column='flurname', ax=ax, legend=True, cmap='Reds')
-
-        # Iterate over the polygons and print their coordinates
-        for polygon in self.cleaned_mun_polys:
-            coords = polygon.get_coordinates()
-            print(f'Polygon with total {polygon.flurname}: {coords}')
 
         plt.show()
 
