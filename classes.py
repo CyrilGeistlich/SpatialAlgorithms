@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.pyplot as plt
 import geopandas as gpd
-from shapely.geometry import Polygon, Point
+from shapely.geometry import Polygon as ShapelyPolygon, Point
 from matplotlib.colors import Normalize
 import matplotlib.cm as cm
 
@@ -926,12 +926,12 @@ class Polygon_Data():
                 vertices.append(vert)
 
         gdf = gpd.GeoDataFrame({
-            'geometry': [Polygon(polygon.get_coordinates()) for polygon in self.cleaned_mun_polys],
+            'geometry': [ShapelyPolygon(polygon.get_coordinates()) for polygon in self.cleaned_mun_polys],
             'bergname': [polygon.bergname for polygon in self.cleaned_mun_polys]
         })
 
         fig, ax = plt.subplots()
-        gdf.plot(column='bergname', ax=ax, legend=True, cmap='viridis')
+        gdf.plot(column='bergname', ax=ax, legend=True, cmap='Reds')
 
         # Iterate over the polygons and print their coordinates
         for polygon in self.cleaned_mun_polys:
@@ -941,24 +941,24 @@ class Polygon_Data():
         plt.show()
 
     def plot_obj_flur(self):
+        vertices = []
+        for p in self.cleaned_mun_polys:
+            for vert in p:
+                vertices.append(vert)
+
+        gdf = gpd.GeoDataFrame({
+            'geometry': [ShapelyPolygon(polygon.get_coordinates()) for polygon in self.cleaned_mun_polys],
+            'flurname': [polygon.flurname for polygon in self.cleaned_mun_polys]
+        })
+
         fig, ax = plt.subplots()
+        gdf.plot(column='flurname', ax=ax, legend=True, cmap='Reds')
 
-        patches = []
-        colors = []
+        # Iterate over the polygons and print their coordinates
         for polygon in self.cleaned_mun_polys:
-            poly = mplPolygon(polygon.to_array(), closed=True)
-            patches.append(poly)
-            colors.append(polygon.flurname_per_area_norm)
+            coords = polygon.get_coordinates()
+            print(f'Polygon with total {polygon.flurname}: {coords}')
 
-        p = PatchCollection(patches, cmap='Blues')
-        p.set_array(np.array(colors))
-
-        ax.add_collection(p)
-        plt.colorbar(p, ax=ax, label='Flurname Counts')
-
-        ax.set_xlim(-10, 60)
-        ax.set_ylim(-10, 60)
-        ax.set_aspect('equal', adjustable='box')
         plt.show()
 
 
