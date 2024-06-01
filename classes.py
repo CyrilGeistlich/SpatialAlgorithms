@@ -826,17 +826,27 @@ class Polygon_Data():
                     polygon.flurname += point_count
 
         # normalize the count of the points in polygon with the area
-        #self.normalize_per_area(self.cleaned_mun_polys)
-        #self.normalize_per_area(self.cleaned_mun_only_vegetation_polys)
-        #self.normalize_per_area(self.cleaned_mun_only_mountains_polys)
+        self.normalize_per_area()
 
+    def flatten_list(self):
+        all_polygons = self.cleaned_mun_polys + self.cleaned_mun_only_vegetation_polys + self.cleaned_mun_only_mountains_polys
+        flat_list = []
+        for item in all_polygons:
+            if isinstance(item, list):
+                flat_list.extend(all_polygons.flatten_list(item))  # Recursively flatten the nested list
+            else:
+                flat_list.append(item)  # Add the item to the flat list
+        return flat_list
+
+    def max_points(self):
         # calculate the maximum and minimum number of points
-        #max_points_per_area = max(
-        #    polygon.total_per_area for polygon in all_polygons if polygon.total_per_area is not None)
-        #min_points_per_area = min(
-        #    polygon.total_per_area for polygon in all_polygons if polygon.total_per_area is not None)
+        return max(
+            polygon.total_per_area for polygon in self.flatten_list() if polygon.total_per_area is not None)
 
-        #self.normalize_total(all_polygons, max_points_per_area, min_points_per_area)
+    def min_points(self):
+        # calculate the maximum and minimum number of points
+        return min(
+            polygon.total_per_area for polygon in self.flatten_list() if polygon.total_per_area is not None)
 
     def extract_ids(self, data):
         id_dict = {}  # Dictionary to store the ids and corresponding items
@@ -851,77 +861,59 @@ class Polygon_Data():
                     id_dict[item_id] = item
         return id_dict
 
-    def normalize_per_area(self, data):
-        for polygon in data:
-            if isinstance(polygon, list):
-                # If the item is a list, recursively call extract_ids
-                polygon.extend(self.normalize_per_area(polygon))
-            else:
+    def normalize_per_area(self):
+        for polygon in self.flatten_list():
                 # Assume the item is an object. then normalize over the polygon area
-                if polygon.total is not None and polygon.area != 0:
+                if polygon.total is not None and polygon.area() != 0:
                     polygon.total_per_area = polygon.total / polygon.area()
-                elif polygon.bergname is not None and polygon.area != 0:
+                elif polygon.bergname is not None and polygon.area() != 0:
                     polygon.bergname_per_area = polygon.bergname / polygon.area()
-                elif polygon.flurname is not None and polygon.area != 0:
+                elif polygon.flurname is not None and polygon.area() != 0:
                     polygon.flurname_per_area = polygon.flurname / polygon.area()
-        return polygon
 
-    def plot_poly_both(self):
+    def plot_poly_both(self, min_count = None, max_count = None):
+        # Create the GeoDataFrame for the main polygons
+        gdf_veg = gpd.GeoDataFrame({
+            'geometry': [ShapelyPolygon(polygon.get_coordinates()) for polygon in self.cleaned_mun_only_vegetation_polys],
+            'count_vegetation': [p.total_per_area for p in self.cleaned_mun_only_vegetation_polys]
+        })
+
+        # Create the GeoDataFrame for the mountain-only polygons
+        gdf_moun = gpd.GeoDataFrame({
+            'geometry': [ShapelyPolygon(polygon.get_coordinates()) for polygon in
+                         self.cleaned_mun_only_mountains_polys],
+            'count_berge': [p.total_per_area for p in self.cleaned_mun_only_mountains_polys]
+        })
+
+        # Create the plot
         fig, ax = plt.subplots()
 
-        patches1 = []
-        colors1 = []
-        for polygon in self.cleaned_mun_only_mountains_polys:
-            if isinstance(polygon, list):
-                # If the item is a list, recursively call extract_ids
-                polygon.extend(self.plot_poly_both(polygon))
-            else:
-                poly = mplPolygon(polygon.points, closed=True)
-                patches1.append(poly)
-                colors1.append(polygon.total_per_area_norm)
+        # Plot the vegetation-only polygons with the specified color scale
+        gdf_veg.plot(column='count_vegetation', ax=ax, legend=True, cmap='Reds', vmin=min_count, vmax=max_count)
 
-        patches2 = []
-        colors2 = []
-        for polygon in self.cleaned_mun_only_vegetation_polys:
-            poly = mplPolygon(polygon.points, closed=True)
-            patches2.append(poly)
-            colors2.append(polygon.total_per_area_norm)
+        # Plot the mountain-only polygons with a different color scale
+        gdf_moun.plot(column='count_berge', ax=ax, legend=True, cmap='Blues', vmin=min_count, vmax=max_count)
 
-        p1 = PatchCollection(patches1, cmap='OrRd')
-        p1.set_array(np.array(colors1))
-
-        p2 = PatchCollection(patches2, cmap='Blues')
-        p2.set_array(np.array(colors2))
-
-        ax.add_collection(p1)
-        ax.add_collection(p2)
-        plt.colorbar(p1, ax=ax, label='Mountain Areas')
-        plt.colorbar(p2, ax=ax, label='Vegetation Areas', orientation='horizontal')
-
-        ax.set_xlim(-10, 60)
-        ax.set_ylim(-10, 60)
-        ax.set_aspect('equal', adjustable='box')
+        # Display the plot
         plt.show()
 
-    def plot_obj_berg(self):
-
+    def plot_obj_berg(self, min_count = None, max_count = None):
         gdf = gpd.GeoDataFrame({
             'geometry': [ShapelyPolygon(polygon.get_coordinates()) for polygon in self.cleaned_mun_polys],
-            'bergname': [p.bergname for p in self.cleaned_mun_polys]
+            'bergname': [p.bergname_per_area for p in self.cleaned_mun_polys]
         })
         fig, ax = plt.subplots()
-        gdf.plot(column='bergname', ax=ax, legend=True, cmap='Reds')
+        gdf.plot(column='bergname', ax=ax, legend=True, cmap='Reds', vmin=min_count, vmax=max_count)
 
         plt.show()
 
-    def plot_obj_flur(self):
-
+    def plot_obj_flur(self, min_count = None, max_count = None):
         gdf = gpd.GeoDataFrame({
             'geometry': [ShapelyPolygon(polygon.get_coordinates()) for polygon in self.cleaned_mun_polys],
-            'flurname': [p.flurname for p in self.cleaned_mun_polys]
+            'flurname': [p.flurname_per_area for p in self.cleaned_mun_polys]
         })
         fig, ax = plt.subplots()
-        gdf.plot(column='flurname', ax=ax, legend=True, cmap='Blues')
+        gdf.plot(column='flurname', ax=ax, legend=True, cmap='Blues',  vmin=min_count, vmax=max_count)
 
         plt.show()
 
