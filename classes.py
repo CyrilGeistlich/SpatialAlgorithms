@@ -3,7 +3,6 @@
 import matplotlib.pyplot as plt
 from numpy import sqrt, radians, arcsin, sin, cos
 import json
-import folium
 from branca.colormap import linear
 import matplotlib.pyplot as plt
 import numpy as np
@@ -133,7 +132,7 @@ class Segment():
     # - should we incorporate testing for identical segments and non-zero lengths?
 
     def intersects(self, other):        
-        
+        """Test if two line segments intersect, returns T or F"""
         # first test if projections overlap 
         
         mnx = min(other.start.x, other.end.x)
@@ -183,6 +182,8 @@ class Segment():
             x = ((a.x * b.y - a.y * b.x) * (c.x - d.x) - (a.x - b.x) * (c.x * d.y - c.y * d.x)) / div
             y = ((a.x * b.y - a.y * b.x) * (c.y - d.y) - (a.y - b.y) * (c.x * d.y - c.y * d.x)) / div
             return Point(x, y)
+        
+## VERTEX CLASS ##
 
 class Vertex(Point):
     def __init__(self, x,y, name = None, intersect = False, alpha = 0.0):
@@ -231,6 +232,8 @@ class Vertex(Point):
     def perturb(self):
         self.x += 0.1
         self.y += 0.1
+        
+## POLYGON CLASS ##
 
 class Polygon(PointGroup):  
     #_id_counter = 0  # Class-level attribute to track the ID
@@ -391,6 +394,11 @@ class Polygon(PointGroup):
         return centre
 
     def containsPoint(self, p):
+        """
+        Checks if a point is contained within a polygon. 
+        Based on Ray Casting Method.
+        Returns TRUE or FALSE. 
+        """
         if (self.bbox.containsPoint(p) == False):
             return False
         
@@ -403,7 +411,7 @@ class Polygon(PointGroup):
             end = self[i+1]
             s = Segment(start, end)
             if s.intersects(ray):
-                # Handling the special case where the point lies exactly on a vertex
+                # Handling the special case where the ray passse through a vertex
                 if (p.y != min(start.y, end.y)):
                     count = count + 1
                     
@@ -607,8 +615,6 @@ class Polygon(PointGroup):
             
 
     def update_entry_exit(self, other):
-
-        
         if other.containsPoint(self.first):
             status = "exit"
         else: status = "entry"
@@ -714,6 +720,8 @@ class Bbox():
             self.ur.y > p.y and p.y > self.ll.y):
             return True
         return False
+
+## POLYGON DATA CLASS ##
 
 class Polygon_Data():
 
@@ -985,6 +993,8 @@ def process_json_file(json_files_data):
 
     return all_data
 
+
+## ADDITIONAL FUNCTIONS ##
 
 def point_polygon_matching(point_list,polygon_list):
     """
