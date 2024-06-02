@@ -843,16 +843,18 @@ class Polygon_Data():
             return _flatten(all_polygons)
         if extend == "mountains":
             return _flatten(self.cleaned_mun_only_mountains_polys)
+        if extend == "mun":
+            return _flatten(self.cleaned_mun_polys)
 
     def max_points(self):
         # Calculate the maximum number of points
         return max(
-            polygon.total_per_area for polygon in self.flatten_list("all") if polygon.total_per_area is not None)
+            polygon.total_per_area for polygon in self.flatten_list("mun") if polygon.total_per_area is not None)
 
     def min_points(self):
         # Calculate the minimum number of points
         return min(
-            polygon.total_per_area for polygon in self.flatten_list("all") if polygon.total_per_area is not None)
+            polygon.total_per_area for polygon in self.flatten_list("mun") if polygon.total_per_area is not None)
 
     def extract_ids(self, data):
         id_dict = {}  # Dictionary to store the ids and corresponding items
@@ -878,61 +880,88 @@ class Polygon_Data():
                 polygon.flurname_per_area = polygon.flurname / polygon.area()
 
     def plot_poly_both(self):
+        # define the global max/min for a common scale for all plots
         min_count = self.min_points()
         max_count = self.max_points()
 
-        # Create the GeoDataFrame for the main polygons
+        def get_valid_polygon_coordinates(polygon):
+            coordinates = polygon.get_coordinates()
+            if len(coordinates) >= 4:
+                return coordinates
+            return None
+
+        # Create the GeoDataFrame for the vegetation polygons
         gdf_veg = gpd.GeoDataFrame({
-            'geometry': [ShapelyPolygon(polygon.get_coordinates()) for polygon in self.cleaned_mun_only_vegetation_polys],
-            'count_vegetation': [p.total_per_area for p in self.cleaned_mun_only_vegetation_polys]
+            'geometry': [ShapelyPolygon(get_valid_polygon_coordinates(p)) for p in self.cleaned_mun_only_vegetation_polys if
+                         get_valid_polygon_coordinates(p)],
+            'count_vegetation': [p.total_per_area for p in self.cleaned_mun_only_vegetation_polys if get_valid_polygon_coordinates(p)]
         })
 
         # Create the GeoDataFrame for the mountain-only polygons
         cleaned_mun_only_mountains_polys_flat = self.flatten_list("mountains")
 
         gdf_moun = gpd.GeoDataFrame({
-            'geometry': [ShapelyPolygon(polygon.get_coordinates()) for polygon in cleaned_mun_only_mountains_polys_flat],
-            'count_berge': [p.total_per_area for p in cleaned_mun_only_mountains_polys_flat]
+            'geometry': [ShapelyPolygon(p.get_coordinates()) for p in cleaned_mun_only_mountains_polys_flat if
+                         get_valid_polygon_coordinates(p)],
+            'count_berge': [p.total_per_area for p in cleaned_mun_only_mountains_polys_flat if get_valid_polygon_coordinates(p)]
         })
 
         # Create the plot
         fig, ax = plt.subplots()
 
         # Plot the vegetation-only polygons with the specified color scale
-        gdf_veg.plot(column='count_vegetation', ax=ax, legend=True, cmap='Reds', vmin=min_count, vmax=max_count)
+        gdf_veg.plot(column='count_vegetation', ax=ax, legend=True, cmap='Blues', vmin = min_count, vmax = max_count)
 
         # Plot the mountain-only polygons with a different color scale
-        gdf_moun.plot(column='count_berge', ax=ax, legend=True, cmap='Blues', vmin=min_count, vmax=max_count)
+        gdf_moun.plot(column='count_berge', ax=ax, legend=True, cmap='Reds', vmin = min_count, vmax = max_count)
+
+        # Add axis labels and a title
+        ax.set_xlabel('Longitude')
+        ax.set_ylabel('Latitude')
+        ax.set_title('Entries per Area')
+
+        # Add legend label
+        cax = fig.get_axes()[1]  # Get the colorbar axis
+        cax.set_ylabel('Vegetation Areas')  # Set the colorbar label
+
+        cax = fig.get_axes()[2]  # Get the colorbar axis
+        cax.set_ylabel('Mountain Areas')  # Set the colorbar label
 
         # Display the plot
         plt.show()
 
     def plot_obj_berg(self):
-
-        min_count = self.min_points()
-        max_count = self.max_points()
-
+        # import the polygon data and greate a GeoDataFrame
         gdf = gpd.GeoDataFrame({
             'geometry': [ShapelyPolygon(polygon.get_coordinates()) for polygon in self.cleaned_mun_polys],
             'bergname': [p.bergname_per_area for p in self.cleaned_mun_polys]
         })
         fig, ax = plt.subplots()
-        gdf.plot(column='bergname', ax=ax, legend=True, cmap='Reds', vmin=min_count, vmax=max_count)
+        gdf.plot(column='bergname', ax=ax, legend=True, cmap='Reds')
 
+        # Add axis labels and a title
+        ax.set_xlabel('Longitude')
+        ax.set_ylabel('Latitude')
+        ax.set_title('Bergname per Area')
+
+        # generate the plot
         plt.show()
 
     def plot_obj_flur(self):
-
-        min_count = self.min_points()
-        max_count = self.max_points()
-
+        #import the polygon data and greate a GeoDataFrame
         gdf = gpd.GeoDataFrame({
             'geometry': [ShapelyPolygon(polygon.get_coordinates()) for polygon in self.cleaned_mun_polys],
             'flurname': [p.flurname_per_area for p in self.cleaned_mun_polys]
         })
         fig, ax = plt.subplots()
-        gdf.plot(column='flurname', ax=ax, legend=True, cmap='Blues',  vmin=min_count, vmax=max_count)
+        gdf.plot(column='flurname', ax=ax, legend=True, cmap='Blues')
 
+        # Add axis labels and a title
+        ax.set_xlabel('Longitude')
+        ax.set_ylabel('Latitude')
+        ax.set_title('Flurname per Area')
+
+        #generate the plot
         plt.show()
 
 
