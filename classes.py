@@ -1,18 +1,24 @@
 ## LIBRARIES ##
 
-import matplotlib.pyplot as plt
-from numpy import sqrt, radians, arcsin, sin, cos
+# JSON 
 import json
-from branca.colormap import linear
-import matplotlib.pyplot as plt
+
+# Numpy
 import numpy as np
+from numpy import sqrt
+
+# Matplotlib
 import matplotlib.pyplot as plt
-import geopandas as gpd
-from shapely.geometry import Polygon as ShapelyPolygon, Point
 from matplotlib.colors import Normalize
 import matplotlib.cm as cm
 
-## DEFINE CLASSES HERE ##
+# Further Visualisation Tools
+from shapely.geometry import Polygon as ShapelyPolygon, Point
+from branca.colormap import linear
+import geopandas as gpd
+
+
+### CLASSES ###
 
 ## POINT CLASS ##
 
