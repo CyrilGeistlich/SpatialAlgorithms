@@ -846,16 +846,6 @@ class Polygon_Data():
         if extend == "mun":
             return _flatten(self.cleaned_mun_polys)
 
-    def max_points(self):
-        # Calculate the maximum number of points
-        return max(
-            polygon.total_per_area for polygon in self.flatten_list("mun") if polygon.total_per_area is not None)
-
-    def min_points(self):
-        # Calculate the minimum number of points
-        return min(
-            polygon.total_per_area for polygon in self.flatten_list("mun") if polygon.total_per_area is not None)
-
     def extract_ids(self, data):
         id_dict = {}  # Dictionary to store the ids and corresponding items
         for item in data:
@@ -881,8 +871,10 @@ class Polygon_Data():
 
     def plot_poly_both(self):
         # define the global max/min for a common scale for all plots
-        min_count = self.min_points()
-        max_count = self.max_points()
+        min_count = min(
+            polygon.total_per_area for polygon in self.flatten_list("mun") if polygon.total_per_area is not None)
+        max_count = max(
+            polygon.total_per_area for polygon in self.flatten_list("mun") if polygon.total_per_area is not None)
 
         def get_valid_polygon_coordinates(polygon):
             coordinates = polygon.get_coordinates()
