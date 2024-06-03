@@ -12,6 +12,7 @@ import geopandas as gpd
 from shapely.geometry import Polygon as ShapelyPolygon, Point
 from matplotlib.colors import Normalize
 import matplotlib.cm as cm
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 ## DEFINE CLASSES HERE ##
 
@@ -884,9 +885,11 @@ class Polygon_Data():
 
         # Create the GeoDataFrame for the vegetation polygons
         gdf_veg = gpd.GeoDataFrame({
-            'geometry': [ShapelyPolygon(get_valid_polygon_coordinates(p)) for p in self.cleaned_mun_only_vegetation_polys if
+            'geometry': [ShapelyPolygon(get_valid_polygon_coordinates(p)) for p in
+                         self.cleaned_mun_only_vegetation_polys if
                          get_valid_polygon_coordinates(p)],
-            'count_vegetation': [p.total_per_area for p in self.cleaned_mun_only_vegetation_polys if get_valid_polygon_coordinates(p)]
+            'count_vegetation': [p.total_per_area for p in self.cleaned_mun_only_vegetation_polys if
+                                 get_valid_polygon_coordinates(p)]
         })
 
         # Create the GeoDataFrame for the mountain-only polygons
@@ -895,29 +898,36 @@ class Polygon_Data():
         gdf_moun = gpd.GeoDataFrame({
             'geometry': [ShapelyPolygon(p.get_coordinates()) for p in cleaned_mun_only_mountains_polys_flat if
                          get_valid_polygon_coordinates(p)],
-            'count_berge': [p.total_per_area for p in cleaned_mun_only_mountains_polys_flat if get_valid_polygon_coordinates(p)]
+            'count_berge': [p.total_per_area for p in cleaned_mun_only_mountains_polys_flat if
+                            get_valid_polygon_coordinates(p)]
         })
 
         # Create the plot
         fig, ax = plt.subplots()
 
+        # Create a divider for the existing axes instance
+        divider = make_axes_locatable(ax)
+
+        # Append axes to the right of ax, with 10% width and the same height
+        cax_veg = divider.append_axes("right", size="5%", pad=0.1)
+        cax_moun = divider.append_axes("right", size="5%", pad=0.5)
+
         # Plot the vegetation-only polygons with the specified color scale
-        gdf_veg.plot(column='count_vegetation', ax=ax, legend=True, cmap='Blues', vmin = min_count, vmax = max_count)
+        gdf_veg.plot(column='count_vegetation', ax=ax, legend=True, cax=cax_veg, cmap='Blues', vmin=min_count,
+                     vmax=max_count)
 
         # Plot the mountain-only polygons with a different color scale
-        gdf_moun.plot(column='count_berge', ax=ax, legend=True, cmap='Reds', vmin = min_count, vmax = max_count)
+        gdf_moun.plot(column='count_berge', ax=ax, legend=True, cax=cax_moun, cmap='Reds', vmin=min_count,
+                      vmax=max_count)
 
         # Add axis labels and a title
         ax.set_xlabel('Longitude')
         ax.set_ylabel('Latitude')
         ax.set_title('Entries per Area')
 
-        # Add legend label
-        cax = fig.get_axes()[1]  # Get the colorbar axis
-        cax.set_ylabel('Vegetation Areas')  # Set the colorbar label
-
-        cax = fig.get_axes()[2]  # Get the colorbar axis
-        cax.set_ylabel('Mountain Areas')  # Set the colorbar label
+        # Add legend labels
+        cax_veg.set_ylabel('Vegetation Areas')  # Set the colorbar label
+        cax_moun.set_ylabel('Mountain Areas')  # Set the colorbar label
 
         # Display the plot
         plt.show()
