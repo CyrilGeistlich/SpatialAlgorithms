@@ -993,10 +993,10 @@ def process_json_file(json_files_data):
 
             for feature in data['features']:
                 if feature['geometry']['type'] == 'Point':
-                    name = feature['properties']['NAME']
+                    name = feature['properties']['NAME']    #The properties to be imported can be changed here and also need to be matched with the used file since the format can vary.
                     objektart = feature['properties']['OBJEKTART']
                     coordinates = feature['geometry']['coordinates']
-                    x, y = coordinates[:2] 
+                    x, y = coordinates[:2]    #In our case, we only need x and y coordinates. This can be adjusted here if z coordinates are needed as well.
                     point = Point(x, y, name, objektart)
                     all_data[return_name].append(point)
                 elif feature['geometry']['type'] == 'Polygon':
