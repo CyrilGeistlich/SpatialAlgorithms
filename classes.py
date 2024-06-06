@@ -9,13 +9,10 @@ from numpy import sqrt
 
 # Matplotlib
 import matplotlib.pyplot as plt
-from matplotlib.colors import Normalize
-import matplotlib.cm as cm
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 # Further Visualisation Tools
 from shapely.geometry import Polygon as ShapelyPolygon, Point
-from branca.colormap import linear
 import geopandas as gpd
 
 
@@ -50,6 +47,7 @@ class Point():
             return NotImplemented
 
         return self.x == other.x and self.y == other.y
+    
     # We need this method so that the class will behave sensibly in sets and dictionaries
     def __hash__(self):
         return hash((self.x, self.y))
@@ -243,7 +241,6 @@ class Vertex(Point):
 ## POLYGON CLASS ##
 
 class Polygon(PointGroup):  
-    #_id_counter = 0  # Class-level attribute to track the ID
 
     # initialise
     def __init__(self, data=None, xcol=None, ycol=None,name=None, id = None):
@@ -348,7 +345,6 @@ class Polygon(PointGroup):
         prev.next = vertex
         curr.prev = vertex
 
-
     def remove(self, vertex):
         next = vertex.next
         previous = vertex.prev
@@ -426,8 +422,7 @@ class Polygon(PointGroup):
             return False           
         else:
             return (self, p)
-
-    
+   
     def clip(self, clip_polygon):
         """Clip this polygon with another polygon using Greiner-Hormann algorithm."""
 
@@ -460,13 +455,10 @@ class Polygon(PointGroup):
 
                             clip_polygon.insert(c_vertex, Segment(c,c.next_vertex()))
                             self.insert(s_vertex, Segment(s,s.next_vertex()))
-        
-
-        
+          
         ## Phase 2:
         self.update_entry_exit(clip_polygon)
         clip_polygon.update_entry_exit(self)
-
 
     def unclip(self):
         current = self.first
@@ -524,7 +516,6 @@ class Polygon(PointGroup):
         other.unclip()
         return result
 
-
     def union(self, other):
         self.clip(other)
         current = self.first.next_vertex(next_original=False)
@@ -564,7 +555,6 @@ class Polygon(PointGroup):
        # self.perturb(redo=True)
         other.unclip()
         return result
-
 
     def difference(self, other):
         self.clip(other)
@@ -620,7 +610,6 @@ class Polygon(PointGroup):
         other.unclip()
         return result
             
-
     def update_entry_exit(self, other):
         if other.containsPoint(self.first):
             status = "exit"
@@ -738,7 +727,6 @@ class Polygon_Data():
         self.cleaned_mun_polys = None
         self.cleaned_mun_only_vegetation_polys = None
         self.cleaned_mun_only_mountains_polys = None
-
 
     def remove_unique_entries(self):
         list1 = self.raw_municipalities_polygons
@@ -980,7 +968,6 @@ class Polygon_Data():
         #generate the plot
         plt.show()
 
-
 def process_json_file(json_files_data):
 
     all_data = {}
@@ -1035,7 +1022,6 @@ def calc_municipalities_poly_difference(municipalities, municipalities_only_vege
     for id in mun_ids:
         print(id)
 
-
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
@@ -1060,7 +1046,6 @@ if __name__ == "__main__":
              [10,35],[5,50], [0, 10]]
 
     sample5 = [[30, 45], [25,40], [20,30], [30,45]]
-
 
     poly1 = Polygon(sample1, xcol=0, ycol=1)
     poly2 = Polygon(sample2, xcol=0, ycol=1)
