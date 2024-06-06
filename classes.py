@@ -1,4 +1,26 @@
-## LIBRARIES ##
+### GEOSPATIAL CLASSES & METHODS ####
+
+### OVERVIEW:
+#This File contains all used algorithms and code during the project:
+
+### Point Class - original code from Ross
+### PointGroup - original code from Ross
+### Segment - mostly from Ross, only the .intersection() method was added. 
+### BBOX - only slightly adapted to not throw an error, when given an empty polygon. Just returns an empty bbox now
+
+# newly added classes:
+### Vertex - Inhertis Methods from Point Class, however is specifically designed for the use in our polygon data structure
+### Polygon - Completely reworked data structure for polygons, containing all methods used to handle linked lists structure
+### Polygon_Data - Specific Class to work with with our project, e.g. handles multiple lists of polygons, cleaning, joining and plotting all data combined.
+
+## TEST:
+# The last section (if __name__ == "__main__") basically only runs, when classes.py is directely exectured, instead of loaded.
+# This section does not import any data, but simulate data directly and visualizes the polygon intersection/union results. This is helpful to check after some changes, wheter the code still runs.
+
+### LIBRARIES
+# JSON is used during the import.
+# Numpy shouldn't be necessary anymore
+# Matplotlib, shapely and geopanas are only used for the visualization
 
 # JSON 
 import json
@@ -264,7 +286,8 @@ class Polygon(PointGroup):
             self.removeDuplicates()
         self.bbox = Bbox(self)
 
-    def __eq__(self, other): 
+    def __eq__(self, other):
+        """ Two polygons are equal, iff the "start" vertex is equal, and all following vertices from there on """ 
         if not isinstance(other, Polygon):
             return NotImplemented
 
@@ -284,11 +307,12 @@ class Polygon(PointGroup):
 
     @property
     def size(self):
-        """ Achtung, .first wird nur einmal gezählt! """
+        """ making this a property, helps that every time polygon.size is exectued, it re-calculates it's own size. (KEEP ATTENTION: 
+        The Start Vertex is NOT twice in the polygon, and therefore not counted twice)"""
         return sum(1 for _ in self)
 
     def __iter__(self):
-        """ Make the polygon iterable, traversing from head to the end. """
+        """ Make the polygon iterable, traversing from head to the end. This way, "for points in polygon" works."""
         current = self.first
         while current:
             yield current
@@ -304,7 +328,11 @@ class Polygon(PointGroup):
             current = current.next
         return current
 
+### Now follow the needed methods to work with linked lists:
     def add(self, point):
+        """ Appends a vertex to the polygon. If polygon ist yet empty, the added vertex is also the polygons .first vertex.
+        If the polygon is not empty, the vertex is added at last position of linked list.
+        (Because the list is circular, it actually is inserted just as "previous" before the .first vertex) """
         if not self.first:
             self.first = point
             self.first.next = point
@@ -317,7 +345,9 @@ class Polygon(PointGroup):
             point.prev = prev
             prev.next = point
     
+    ## replace is actually not needed anymore.
     def replace(self, old, new):
+        """ Replaces an element in the linked list with another. e.g. A->B->C, self.replace(B,X) results in: A->X->C"""
         new.next = old.next
         new.prev = old.prev
         old.prev.next = new
@@ -325,15 +355,15 @@ class Polygon(PointGroup):
         if old is self.first:
             self.first = new
 
-    def insert(self, vertex, edge):
+    def insert(self, vertex, edge): ##Crucial Method, which is not only necessary for linked list, but especially the clip function, as it differenciates between intersection points and original points
         """Insert and sort a vertex between a specified pair of vertices.
 
         This function inserts a vertex (most likely an intersection point)
-        between two other vertices (start and end). These other vertices
+        between two other vertices (start and end of an edge). These other vertices
         cannot be intersections (that is, they must be actual vertices of
         the original polygon). If there are multiple intersection points
         between the two vertices, then the new vertex is inserted based on
-        its alpha value.
+        its alpha value (which is the distance to the edge start)
         """
         curr = edge.start
         while curr != edge.end and curr.alpha < vertex.alpha:
@@ -346,29 +376,20 @@ class Polygon(PointGroup):
         curr.prev = vertex
 
     def remove(self, vertex):
+        """ Removes an element in the linked list. e.g. A->B->C, self.remove(B) results in: A->C"""
         next = vertex.next
         previous = vertex.prev
 
         vertex.prev.next = next
         vertex.next.previous = previous
 
-    # test if polygon is closed: first and last point should be identical
-    def isClosed(self):
-        start = self.points[0]
-        end = self.points[-1]
-        return start == end
-
     def removeDuplicates(self):
-        oldn = self.size
+        """ Actually a trick, if somehow Duplicate Vertices were inserted in the polygon. Re-Empties the polygon, and fills it again with dictionary values of the former points"""
         points = list(dict.fromkeys(self)) # Get rid of the duplicates
         self.first = None
         for p in points:
             self.add(Vertex(p.x,p.y,p.name,p.intersect,p.alpha))
-        n = self.size
         
-        # find area and centre of the polygon
-    # - based on GIS Algorithms, Ch.2 p9-10, by Ningchuan Xiao, publ. 2016 
-    
     def __signedArea(self):  # used for both area and centre calculations - this is a private method (only used within the class)
         a = 0
         xmean = 0
@@ -424,7 +445,9 @@ class Polygon(PointGroup):
             return (self, p)
    
     def clip(self, clip_polygon):
-        """Clip this polygon with another polygon using Greiner-Hormann algorithm."""
+        """Clip this polygon with another polygon using Greiner-Hormann algorithm. This function inserts all intersection points in both polygons.
+        clipping alter both ORIGINAL polygons (self and other) and should be reversed afterwards again, using the .unclip() methods. Otherwise,
+        Some intersection between polygon A and B remains and ruins geometrical operations when afterwards e.g. intersecting with C"""
 
         if not self.bbox.intersects(clip_polygon.bbox):
             print("Bbox test failed, no polygon intersection")
@@ -432,10 +455,10 @@ class Polygon(PointGroup):
 
 
         for i, s in enumerate(self):
-            if not s.intersect:
+            if not s.intersect: ##s.intersect is the point attribute, if the point is already an intersection point.
                 for j, c in enumerate(clip_polygon):
                     if not c.intersect:
-                        if Segment(s,s.next_vertex()).intersects(Segment(c,c.next_vertex())):
+                        if Segment(s,s.next_vertex()).intersects(Segment(c,c.next_vertex())): #If edges of polygon intersects
 
                             if s.leftRight(c,c.next_vertex()) == 0: ## If Point in Polygon A is colinear with Edge in B
                                 s.perturb()
@@ -456,11 +479,12 @@ class Polygon(PointGroup):
                             clip_polygon.insert(c_vertex, Segment(c,c.next_vertex()))
                             self.insert(s_vertex, Segment(s,s.next_vertex()))
           
-        ## Phase 2:
+        ## Phase 2 of Greiner Hormann, directly implemented here:
         self.update_entry_exit(clip_polygon)
         clip_polygon.update_entry_exit(self)
 
     def unclip(self):
+        """Removes again all (previously inserted) vertices, which are Intersection points."""
         current = self.first
         initial_first = self.first
 
@@ -477,7 +501,10 @@ class Polygon(PointGroup):
             current = next_node
 
     def intersection(self, other):
-        self.clip(other)
+        """Original Greiner-Hormann Code for computing geometrical intersection of two polygons. """
+
+        self.clip(other) ##Phase 1 & 2
+
         current = self.first.next_vertex(next_original=False)
         result = []
 
@@ -512,11 +539,11 @@ class Polygon(PointGroup):
                     break
         
         self.unclip()
-       # self.perturb(redo=True)
         other.unclip()
         return result
 
     def union(self, other):
+        """ Computes geometrical union of two polygons. Almost identical to intersection, however, traversial direction is vice versa than in intersection"""
         self.clip(other)
         current = self.first.next_vertex(next_original=False)
         result = []
@@ -557,6 +584,7 @@ class Polygon(PointGroup):
         return result
 
     def difference(self, other):
+        """ Computes geometrical difference of two polygons. If you want the part of A that is not in B (e.g. A-B) call: A.difference(B)."""
         self.clip(other)
         current = self.first.next_vertex(next_original=False)
         result = []
@@ -611,6 +639,7 @@ class Polygon(PointGroup):
         return result
             
     def update_entry_exit(self, other):
+        """ Phase 2 of Greiner Hormann Algorithm: Iterate over each vertex in polygon and mark the intersections as either entry or exit intersection."""
         if other.containsPoint(self.first):
             status = "exit"
         else: status = "entry"
@@ -622,7 +651,7 @@ class Polygon(PointGroup):
                 else: status = "entry"
    
     def edges(self):
-        """Generate edges of the polygon."""
+        """Generate Segmens for each edge in polygon."""
         start = self.first
         segments = []
         while True:
@@ -634,6 +663,7 @@ class Polygon(PointGroup):
         return segments
 
     def viz(self):
+        """ Quick visualization of one polygon, using matplotlib. (See TEST part down below)"""
         x = [i.x for i in self]
         x.append(self.first.x)
         y = [i.y for i in self]
@@ -657,6 +687,7 @@ class Polygon(PointGroup):
         return np.array(coords)
 
     def get_coordinates(self):
+        """ return a list of only the coordinates of each vertex"""
         return [(vertex.x, vertex.y) for vertex in self]
 
 ## BBOX CLASS ##
@@ -968,6 +999,8 @@ class Polygon_Data():
         #generate the plot
         plt.show()
 
+## ADDITIONAL FUNCTIONS ##
+
 def process_json_file(json_files_data):
 
     all_data = {}
@@ -996,9 +1029,6 @@ def process_json_file(json_files_data):
 
     return all_data
 
-
-## ADDITIONAL FUNCTIONS ##
-
 def point_polygon_matching(point_list,polygon_list):
     """
     Finds Points contained by a Polygon. Takes Lists.
@@ -1016,12 +1046,8 @@ def point_polygon_matching(point_list,polygon_list):
                 contained_points.append([poly.id,point.id,point.name,point.objektart])
     return contained_points
 
-def calc_municipalities_poly_difference(municipalities, municipalities_only_vegetation_area):
-    mun_ids = [obj.id for obj in data['Gemeinden_mit_Berge']]
 
-    for id in mun_ids:
-        print(id)
-
+### TESTS:
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
@@ -1058,24 +1084,24 @@ if __name__ == "__main__":
    # print(f"Polygon 2 is closed: {poly2.isClosed()}")
 
     #print(poly3.containsPoint(poly2.first.next))
-    # plt.figure()
-    # poly2.viz()
-    # poly3.viz()
+    plt.figure()
+    poly2.viz()
+    poly3.viz()
 
-    # diff1 = poly3.difference(poly2)
-    # diff2 = poly2.difference(poly3)
-    # intersection = poly3.intersection(poly2)
-    # union = poly3.union(poly2)
+    diff1 = poly3.difference(poly2)
+    diff2 = poly2.difference(poly3)
+    intersection = poly3.intersection(poly2)
+    union = poly3.union(poly2)
 
-    # plt.figure()
-    # for p in diff1: p.viz()
-    # plt.figure()
-    # for p in diff2: p.viz()
-    # plt.figure()
-    # for p in intersection: p.viz()
-    # plt.figure()
-    # for p in union: p.viz()
-    # #for p in diff: p.viz()
+    plt.figure()
+    for p in diff1: p.viz()
+    plt.figure()
+    for p in diff2: p.viz()
+    plt.figure()
+    for p in intersection: p.viz()
+    plt.figure()
+    for p in union: p.viz()
+    #for p in diff: p.viz()
 
     # path = "/Users/sebastiangmur/Projekte/Uzh/GEO877_Spatial_Algorithms/SpatialAlgorithms/data/swissnames_points_json_export.geojson"
     # json_files_data = [(path, "name")]
