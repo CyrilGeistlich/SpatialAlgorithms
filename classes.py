@@ -671,20 +671,6 @@ class Polygon(PointGroup):
         plt.plot(x, y, linestyle='dashed')
         plt.scatter(x, y)
 
-    def to_array(self):
-        if not self.first:
-            return np.array([])  # Return empty array if no vertices
-
-        coords = []
-        current = self.first
-
-        while True:
-            coords.append([current.x, current.y])
-            current = current.next
-            if current == self.first:
-                break
-
-        return np.array(coords)
 
     def get_coordinates(self):
         """ return a list of only the coordinates of each vertex"""
